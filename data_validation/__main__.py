@@ -220,8 +220,8 @@ def _get_calculated_config(args, config_manager: ConfigManager) -> List[dict]:
 def _get_comparison_config(args, config_manager: ConfigManager) -> List[dict]:
     col_list = (
         None
-        if config_manager.comparison_fields == "*"
-        else cli_tools.get_arg_list(config_manager.comparison_fields)
+        if args.comparison_fields == "*"
+        else cli_tools.get_arg_list(args.comparison_fields)
     )
     comparison_fields = config_manager.build_comp_fields(
         col_list,

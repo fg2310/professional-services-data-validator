@@ -608,3 +608,29 @@ def test_get_none_run_id(module_under_test):
         SAMPLE_CONFIG, MockIbisClient(), MockIbisClient(), verbose=False
     )
     assert config_manager.run_id is None
+
+
+@mock.patch(
+    "data_validation.config_manager.ConfigManager.get_source_ibis_calculated_table",
+    new=lambda x: MockIbisTable(),
+)
+def test_build_comp_fields(module_under_test):
+    config_manager = module_under_test.ConfigManager(
+        SAMPLE_CONFIG, MockIbisClient(), MockIbisClient(), verbose=False
+    )
+
+    # With exclude_columns=False
+    comparison_fields = config_manager.build_comp_fields(
+        ["a", "c", "e"],
+        False,
+    )
+    # Column "e" does not exists and therefore should not be in the list, even though
+    # it was requested.
+    assert comparison_fields == {"a": "a", "c": "c"}
+
+    # With exclude_columns=True
+    comparison_fields = config_manager.build_comp_fields(
+        ["a", "c", "e"],
+        True,
+    )
+    assert comparison_fields == {"b": "b", "d": "d"}

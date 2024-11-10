@@ -1167,7 +1167,7 @@ class ConfigManager(object):
                     col_names.append(col)
         return col_names
 
-    def build_comp_fields(self, col_list: list, exclude_cols: bool = False) -> list:
+    def build_comp_fields(self, col_list: list, exclude_cols: bool = False) -> dict:
         """This is a utility function processing comp-fields values like we do for hash/concat."""
         source_table = self.get_source_ibis_calculated_table()
         casefold_source_columns = {_.casefold(): str(_) for _ in source_table.columns}
