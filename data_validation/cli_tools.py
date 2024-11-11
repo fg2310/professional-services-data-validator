@@ -1431,7 +1431,9 @@ def get_pre_build_configs(args: Namespace, validate_cmd: str) -> List[Dict]:
     format = args.format if args.format else "table"
 
     # Get random row arguments. Only in row validations these attributes can be present.
-    use_random_rows = getattr(args, consts.CONFIG_USE_RANDOM_ROWS, False)
+    # Bad coding here, but keeping it so as not to introduce a breaking change. See
+    # consts.py Line 17 for a more detailed explanation.
+    use_random_rows = getattr(args, "use_random_row", False)
     random_row_batch_size = getattr(args, consts.CONFIG_RANDOM_ROW_BATCH_SIZE, None)
 
     # Get table list. Not supported in case of custom query validation

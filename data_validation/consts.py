@@ -14,6 +14,12 @@
 
 
 # Configuration Fields
+# These are all keys into the config dict. Where these values come from the command line, these would
+# match with the command line argument - so --secret-manager-type value would be inserted with the
+# 'secret_manager_type' key.
+# This is true for the most part, except where a typo gets introduced, i.e. --use-random-row became use_random_rows
+# Fixing this would be a breaking change. A future cleanup to prevent this would be to use
+# f'--{config_constant.repl('_','-')}' as the name argument to argparse.
 SOURCE_TYPE = "source_type"
 SECRET_MANAGER_TYPE = "secret_manager_type"
 SECRET_MANAGER_PROJECT_ID = "secret_manager_project_id"
