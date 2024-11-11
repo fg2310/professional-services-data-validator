@@ -16,8 +16,9 @@ import argparse
 import logging
 import os
 from unittest import mock
+import pytest
 
-from data_validation import cli_tools
+from data_validation import cli_tools, exceptions
 from data_validation import __main__ as main
 
 
@@ -58,10 +59,23 @@ CONFIG_RUNNER_ARGS_3 = {
     "log_level": "INFO",
     "dry_run": False,
     "command": "configs",
-    "validation_config_cmd": "run",
     "kube_completions": True,
+    "validation_config_cmd": "run",
     "config_dir": "gs://pso-kokoro-resources/resources/test/unit/test__main/4partitions",
 }
+CONFIG_RUNNER_ARGS_4 = {
+    "verbose": False,
+    "log_level": "INFO",
+    "dry_run": False,
+    "command": "configs",
+    "kube_completions": False,
+    "validation_config_cmd": "run",
+    "config_dir": "gs://pso-kokoro-resources/resources/test/unit/test__main/4partitions",
+}
+
+CONFIG_RUNNER_EXCEPTION_TEXT = (
+    "Error '{}' occurred while running config file {}. Skipping it for now."
+)
 
 
 @mock.patch(
@@ -162,3 +176,34 @@ def test_config_runner_3(mock_args, mock_build, mock_run, caplog):
     assert mock_run.call_args.args[0].config_dir is None
     assert os.path.basename(mock_run.call_args.args[0].config_file) == "0002.yaml"
     assert len(mock_run.call_args.args[1]) == 1
+
+
+@mock.patch("data_validation.__main__.run_validations")
+@mock.patch(
+    "data_validation.__main__.build_config_managers_from_yaml",
+    return_value=["config dict from one file"],
+)
+@mock.patch(
+    "argparse.ArgumentParser.parse_args",
+    return_value=argparse.Namespace(**CONFIG_RUNNER_ARGS_4),
+)
+def test_config_runner_4(mock_args, mock_build, mock_run, caplog):
+    """Third test - run validation on a directory with failures in one validation,
+        Running in a non Kube completions environment. Expected Result:
+    1. All 4 files are validated, even though one of them raises an exception.
+    2. Exception from one validation is trapped, file skipped and raised at the end.
+    """
+    mock_run.side_effect = [10, ValueError("Boom!"), 12, 10]
+    caplog.set_level(logging.WARNING)
+    args = cli_tools.get_parsed_args()
+    caplog.clear()
+    with pytest.raises(exceptions.ValidationException) as e_info:
+        main.config_runner(args)
+    # assert that exception message was output for the failed validation
+    # validation is called four times, once for each file
+    # After all four files were validated, an exception was raised back to main to return status
+    assert caplog.messages[0] == CONFIG_RUNNER_EXCEPTION_TEXT.format(
+        "Boom!", "0001.yaml"
+    )
+    assert mock_run.call_count == 4
+    assert e_info.value.args[0] == "Some of the validations raised an exception"

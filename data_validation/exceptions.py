@@ -17,5 +17,9 @@ class DataClientConnectionFailure(Exception):
     pass
 
 
-class SchemaValidationException(Exception):
+class ValidationException(Exception):
+    pass
+
+
+class SchemaValidationException(ValidationException):
     pass
