@@ -443,6 +443,8 @@ NON_OBJECT_FIELDS = pandas.Index(["int_val", "double_val"])
 
 RANDOM_STRINGS = ["a", "b", "c", "d"]
 
+CAPLOG_DF_HEADER = "validation_name validation_type source_table_name source_column_name source_agg_value target_agg_value pct_difference validation_status"
+
 
 @pytest.fixture
 def ibis_pandas():
@@ -765,12 +767,18 @@ def test_bad_join_row_level_validation(module_under_test, fs, caplog, monkeypatc
     # assert len(caplog.records) == 202
     run_id = result_df.iloc[0]["run_id"]
     assert run_id != DUMMY_RUN_ID
-    assert caplog.records[0].message == f"Results written to BigQuery, run id: {run_id}"
-    assert (
-        "validation_name validation_type source_table_name source_column_name source_agg_value target_agg_value pct_difference validation_status"
-        in caplog.records[1].message
+    assert any(
+        _
+        for _ in caplog.records
+        if _.message == f"Results written to BigQuery, run id: {run_id}"
     )
-    assert f"fail {run_id}" in caplog.records[1].message
+    assert any(
+        _
+        for _ in caplog.records
+        if "validation_name validation_type source_table_name source_column_name source_agg_value target_agg_value pct_difference validation_status"
+        in _.message
+    )
+    assert any(_ for _ in caplog.records if f"fail {run_id}" in _.message)
 
 
 def test_no_console_data_shown_for_validation_with_result_written_to_bq_in_info_mode(
@@ -798,11 +806,8 @@ def test_no_console_data_shown_for_validation_with_result_written_to_bq_in_info_
     assert len(fail_df) == 2
     # Only the "Results written" message happens
     # Important because the results could include sensitive data, which some users need to exclude
-    assert len(caplog.records) == 1
-    assert (
-        caplog.records[0].message
-        == f"Results written to BigQuery, run id: {DUMMY_RUN_ID}"
-    )
+    caplog_messages = [_.message for _ in caplog.records]
+    assert f"Results written to BigQuery, run id: {DUMMY_RUN_ID}" in caplog_messages
 
 
 def test_no_console_data_shown_for_matching_validation_with_result_written_to_bq_in_info_mode(
@@ -826,8 +831,9 @@ def test_no_console_data_shown_for_matching_validation_with_result_written_to_bq
     # 0 failures returned
     assert len(result_df) == 0
     # Only the "No results" message happens
-    assert len(caplog.records) == 1
-    assert caplog.records[0].message == "No results to write to BigQuery"
+    caplog_messages = [_.message for _ in caplog.records]
+    assert not any([_ for _ in caplog_messages if CAPLOG_DF_HEADER in _])
+    assert "No results to write to BigQuery" in caplog_messages
 
 
 def test_console_data_shown_for_validation_with_result_written_to_bq_in_debug_mode(
@@ -854,16 +860,10 @@ def test_console_data_shown_for_validation_with_result_written_to_bq_in_debug_mo
     fail_df = result_df[result_df["validation_status"] == consts.VALIDATION_STATUS_FAIL]
     assert len(fail_df) == 2
     # The "Results written" message happens + info about the failed data
-    assert len(caplog.records) == 2
-    assert (
-        caplog.records[0].message
-        == f"Results written to BigQuery, run id: {DUMMY_RUN_ID}"
-    )
-    assert (
-        "validation_name validation_type source_table_name source_column_name source_agg_value target_agg_value pct_difference validation_status"
-        in caplog.records[1].message
-    )
-    assert f"fail {DUMMY_RUN_ID}" in caplog.records[1].message
+    caplog_messages = [_.message for _ in caplog.records]
+    assert f"Results written to BigQuery, run id: {DUMMY_RUN_ID}" in caplog_messages
+    assert any([_ for _ in caplog_messages if CAPLOG_DF_HEADER in _])
+    assert any([_ for _ in caplog_messages if f"fail {DUMMY_RUN_ID}" in _])
 
 
 def test_console_data_shown_for_matching_validation_with_result_written_to_bq_in_debug_mode(
@@ -887,6 +887,6 @@ def test_console_data_shown_for_matching_validation_with_result_written_to_bq_in
     # 0 failures returned
     assert len(result_df) == 0
     # The "No results" message happens + "Empty DataFrame" because there are no failures to display
-    assert len(caplog.records) == 2
-    assert caplog.records[0].message == "No results to write to BigQuery"
-    assert caplog.records[1].message.startswith("Empty DataFrame")
+    caplog_messages = [_.message for _ in caplog.records]
+    assert "No results to write to BigQuery" in caplog_messages
+    assert any([_ for _ in caplog_messages if _.startswith("Empty DataFrame")])
