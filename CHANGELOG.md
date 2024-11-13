@@ -2,6 +2,26 @@
 
 ## Untagged
 
+## [6.4.0](https://github.com/GoogleCloudPlatform/professional-services-data-validator/compare/v6.3.0...v6.4.0) (2024-11-12)
+
+
+### Features
+
+* user defined input `run_id` via config ([#1310](https://github.com/GoogleCloudPlatform/professional-services-data-validator/issues/1310)) ([783d1b0](https://github.com/GoogleCloudPlatform/professional-services-data-validator/commit/783d1b09359490f1977ac66534c92dddd55a4e74))
+
+
+### Bug Fixes
+
+* Fix --comp-fields bug losing option value before validation ([#1323](https://github.com/GoogleCloudPlatform/professional-services-data-validator/issues/1323)) ([8813366](https://github.com/GoogleCloudPlatform/professional-services-data-validator/commit/8813366d6aff76552722c08f593e4194ebb6b7a1))
+* Hardcode Oracle max_identifier_length=128, this is a hack but a necessary evil ([#1316](https://github.com/GoogleCloudPlatform/professional-services-data-validator/issues/1316)) ([4c54031](https://github.com/GoogleCloudPlatform/professional-services-data-validator/commit/4c540314cd6dcdd6d238bfb48bca6dd4e2e1033d))
+* Issue 1312 incorrect status code ([#1317](https://github.com/GoogleCloudPlatform/professional-services-data-validator/issues/1317)) ([ade6d79](https://github.com/GoogleCloudPlatform/professional-services-data-validator/commit/ade6d795c79b556e517cde80398dda11ce38d227))
+* Issue 1325 ([#1328](https://github.com/GoogleCloudPlatform/professional-services-data-validator/issues/1328)) ([dfe8b8b](https://github.com/GoogleCloudPlatform/professional-services-data-validator/commit/dfe8b8b35364ae7726b24a1f2dbf47d8ac4931d8))
+
+
+### Documentation
+
+* Add a sample script for VM automation of partitioning ([#1307](https://github.com/GoogleCloudPlatform/professional-services-data-validator/issues/1307)) ([75089b1](https://github.com/GoogleCloudPlatform/professional-services-data-validator/commit/75089b154f5155bde9d5eb697fcc51a547d344dc))
+
 ## [6.3.0](https://github.com/GoogleCloudPlatform/professional-services-data-validator/compare/v6.2.0...v6.3.0) (2024-10-24)
 
 
