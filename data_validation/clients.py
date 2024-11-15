@@ -137,6 +137,13 @@ def get_pandas_client(table_name, file_path, file_type):
     return pandas_client
 
 
+def is_sqlalchemy_backend(client):
+    try:
+        return bool(client.name in IBIS_ALCHEMY_BACKENDS)
+    except Exception:
+        return False
+
+
 def is_oracle_client(client):
     try:
         return client.name == "oracle"
@@ -184,14 +191,14 @@ def get_ibis_table_schema(client, schema_name: str, table_name: str) -> "sch.Sch
     table_name (str): Table name of table object
     database_name (str): Database name (generally default is used)
     """
-    if client.name in IBIS_ALCHEMY_BACKENDS:
+    if is_sqlalchemy_backend(client):
         return client.table(table_name, schema=schema_name).schema()
     else:
         return client.get_schema(table_name, schema_name)
 
 
 def get_ibis_query_schema(client, query_str) -> "sch.Schema":
-    if client.name in IBIS_ALCHEMY_BACKENDS:
+    if is_sqlalchemy_backend(client):
         ibis_query = get_ibis_query(client, query_str)
         return ibis_query.schema()
     else:

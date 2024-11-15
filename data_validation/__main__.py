@@ -464,7 +464,7 @@ def run_raw_query_against_connection(args):
     return res
 
 
-def convert_config_to_yaml(args, config_managers):
+def convert_config_to_yaml(args, config_managers: list):
     """Return dict objects formatted for yaml validations.
 
     Args:
@@ -484,7 +484,7 @@ def convert_config_to_yaml(args, config_managers):
     return yaml_config
 
 
-def convert_config_to_json(config_managers) -> dict:
+def convert_config_to_json(config_managers: list) -> dict:
     """Return dict objects formatted for json validations.
     JSON configs correspond to ConfigManager objects and therefore can only correspond to
     one table validation.
@@ -504,7 +504,7 @@ def convert_config_to_json(config_managers) -> dict:
     return json_config
 
 
-def run_validation(config_manager, dry_run=False, verbose=False):
+def run_validation(config_manager: ConfigManager, dry_run=False, verbose=False):
     """Run a single validation.
 
     Args:
@@ -512,11 +512,24 @@ def run_validation(config_manager, dry_run=False, verbose=False):
         dry_run (bool): Print source and target SQL to stdout in lieu of validation.
         verbose (bool): Validation setting to log queries run.
     """
+    # Only use cached connection for SQLAlchemy backends that manage reconnects for us.
+    source_client = (
+        config_manager.source_client
+        if clients.is_sqlalchemy_backend(config_manager.source_client)
+        else None
+    )
+    target_client = (
+        config_manager.target_client
+        if clients.is_sqlalchemy_backend(config_manager.target_client)
+        else None
+    )
     with DataValidation(
         config_manager.config,
         validation_builder=None,
         result_handler=None,
         verbose=verbose,
+        source_client=source_client,
+        target_client=target_client,
     ) as validator:
 
         if dry_run:

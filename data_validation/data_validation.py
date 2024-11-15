@@ -43,6 +43,8 @@ class DataValidation(object):
         schema_validator=None,
         result_handler=None,
         verbose=False,
+        source_client: ibis.backends.base.BaseBackend = None,
+        target_client: ibis.backends.base.BaseBackend = None,
     ):
         """Initialize a DataValidation client
 
@@ -52,13 +54,21 @@ class DataValidation(object):
             schema_validator (SchemaValidation): Optional instance of a SchemaValidation.
             result_handler (ResultHandler): Optional instance of as ResultHandler client.
             verbose (bool): If verbose, the Data Validation client will print the queries run.
+            source_client: Optional client to avoid unnecessary connections,
+            target_client: Optional client to avoid unnecessary connections,
         """
         self.verbose = verbose
+        self._fresh_connections = not bool(source_client and target_client)
 
         # Data Client Management
         self.config = config
 
-        self.config_manager = ConfigManager(config, verbose=self.verbose)
+        self.config_manager = ConfigManager(
+            config,
+            source_client=source_client,
+            target_client=target_client,
+            verbose=self.verbose,
+        )
 
         self.run_metadata = metadata.RunMetadata()
         self.run_metadata.labels = self.config_manager.labels
@@ -82,7 +92,7 @@ class DataValidation(object):
         return self
 
     def __exit__(self, exc_type, exc_value, exc_traceback):
-        if hasattr(self, "config_manager"):
+        if self._fresh_connections and hasattr(self, "config_manager"):
             self.config_manager.close_client_connections()
 
     # TODO(dhercher) we planned on shifting this to use an Execution Handler.

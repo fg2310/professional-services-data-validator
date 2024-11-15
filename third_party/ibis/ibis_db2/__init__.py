@@ -51,7 +51,12 @@ class Backend(BaseAlchemyBackend):
         else:
             sa_url = sa.engine.url.make_url(url)
 
-        engine = sa.create_engine(sa_url, poolclass=sa.pool.StaticPool)
+        engine = sa.create_engine(
+            sa_url,
+            poolclass=sa.pool.StaticPool,
+            # Pessimistic disconnect handling
+            pool_pre_ping=True,
+        )
         self.database_name = database
         self.url = sa_url
 

@@ -56,7 +56,11 @@ class Backend(BaseAlchemyBackend):
             connect_args["options"] = f"-csearch_path={schema}"
 
         engine = sa.create_engine(
-            alchemy_url, connect_args=connect_args, poolclass=sa.pool.StaticPool
+            alchemy_url,
+            connect_args=connect_args,
+            poolclass=sa.pool.StaticPool,
+            # Pessimistic disconnect handling
+            pool_pre_ping=True,
         )
 
         @sa.event.listens_for(engine, "connect")
@@ -82,7 +86,7 @@ class Backend(BaseAlchemyBackend):
         name = self._quote(raw_name)
         type_info_sql = """\
     SELECT
-    "column", "type" 
+    "column", "type"
     FROM PG_TABLE_DEF
     WHERE tablename = :raw_name
     """
