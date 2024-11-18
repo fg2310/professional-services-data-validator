@@ -53,6 +53,6 @@ class GCPSecretManager:
             # Return the decoded payload.
             payload = response.payload.data.decode("UTF-8")
             return payload
-        except exceptions.NotFound:
+        except (exceptions.NotFound, exceptions.InvalidArgument):
             # The secret does not exist and therefore we can assume it is just a token to be returned.
             return secret_id

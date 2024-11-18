@@ -1,7 +1,8 @@
 import os
-import pytest
-from data_validation import secret_manager
 
+import pytest
+
+from data_validation import secret_manager
 
 project_id = os.getenv("PROJECT_ID")
 
@@ -20,7 +21,7 @@ def test_access_gcp_secret_exists():
     secret_id = "db_test_user"
     manager = secret_manager.SecretManagerBuilder().build(client_type)
     secret_value = manager.maybe_secret(project_id, secret_id)
-    assert secret_value == "db_test_user"
+    assert secret_value == secret_id
 
 
 def test_access_gcp_secret_not_exists():
