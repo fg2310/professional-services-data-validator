@@ -18,7 +18,7 @@ import os
 from unittest import mock
 import pytest
 
-from data_validation import cli_tools, exceptions
+from data_validation import cli_tools, exceptions, config_manager, consts
 from data_validation import __main__ as main
 
 
@@ -76,6 +76,126 @@ CONFIG_RUNNER_ARGS_4 = {
 CONFIG_RUNNER_EXCEPTION_TEXT = (
     "Error '{}' occurred while running config file {}. Skipping it for now."
 )
+
+VALIDATE_COLUMN_CONFIG = {
+    "verbose": False,
+    "log_level": "INFO",
+    "command": "validate",
+    "validate_cmd": "column",
+    "dry_run": False,
+    consts.CONFIG_TYPE: consts.COLUMN_VALIDATION,
+    consts.CONFIG_SOURCE_CONN: TEST_CONN,
+    consts.CONFIG_TARGET_CONN: TEST_CONN,
+    consts.CONFIG_FILE: None,
+    consts.CONFIG_FILE_JSON: None,
+}
+BROKEN_VALIDATE_COLUMN_CONFIG_MISSING_COMMAND = {
+    "verbose": False,
+    "log_level": "INFO",
+    "validate_cmd": "column",
+    "dry_run": False,
+    consts.CONFIG_TYPE: consts.COLUMN_VALIDATION,
+    consts.CONFIG_SOURCE_CONN: TEST_CONN,
+    consts.CONFIG_TARGET_CONN: TEST_CONN,
+    consts.CONFIG_FILE: None,
+    consts.CONFIG_FILE_JSON: None,
+}  # same as VALIDATE_COLUMN_CONFIG but without the command item
+BROKEN_VALIDATE_COLUMN_CONFIG_INCORRECT_COMMAND = {
+    "verbose": False,
+    "log_level": "INFO",
+    "command": "incorrectcommand",
+    "validate_cmd": "column",
+    "dry_run": False,
+    consts.CONFIG_TYPE: consts.COLUMN_VALIDATION,
+    consts.CONFIG_SOURCE_CONN: TEST_CONN,
+    consts.CONFIG_TARGET_CONN: TEST_CONN,
+    consts.CONFIG_FILE: None,
+    consts.CONFIG_FILE_JSON: None,
+}  # same as VALIDATE_COLUMN_CONFIG but with the command item replaced
+VALIDATE_ROW_CONFIG = {
+    "verbose": False,
+    "log_level": "INFO",
+    "command": "validate",
+    "validate_cmd": "row",
+    "dry_run": False,
+    consts.CONFIG_TYPE: consts.ROW_VALIDATION,
+    consts.CONFIG_SOURCE_CONN: TEST_CONN,
+    consts.CONFIG_TARGET_CONN: TEST_CONN,
+    consts.CONFIG_FILE: None,
+    consts.CONFIG_FILE_JSON: None,
+}  # same as VALIDATE_COLUMN_CONFIG but with 2 items replaced
+VALIDATE_CONFIG = {
+    "verbose": False,
+    "log_level": "INFO",
+    "command": "configs",
+    "validation_config_cmd": "run",
+    "dry_run": False,
+    consts.CONFIG_TYPE: consts.ROW_VALIDATION,
+    consts.CONFIG_FILE: "test.yaml",
+    "config_dir": None,
+    "kube_completions": None,
+}
+CONNECTION_LIST_ARGS = {
+    "verbose": False,
+    "log_level": "INFO",
+    "command": "connections",
+    "connect_cmd": "list",
+}
+CONNECTION_ADD_ARGS = {
+    "verbose": False,
+    "log_level": "INFO",
+    "command": "connections",
+    "connect_cmd": "add",
+    "connect_type": "BigQuery",
+    consts.SECRET_MANAGER_TYPE: "gcp",
+    consts.SECRET_MANAGER_PROJECT_ID: "dummy-gcp-project",
+    consts.PROJECT_ID: "dummy-gcp-project",
+    consts.GOOGLE_SERVICE_ACCOUNT_KEY_PATH: None,
+    "connection_name": "dummy-bq-connection",
+}
+BROKEN_CONNECTION_CONFIG_INCORRECT_COMMAND = {
+    "verbose": False,
+    "log_level": "INFO",
+    "command": "connections",
+    "connect_cmd": "incorrectconnectioncommand",
+    "connect_type": "BigQuery",
+    consts.SECRET_MANAGER_TYPE: "gcp",
+    consts.SECRET_MANAGER_PROJECT_ID: "dummy-gcp-project",
+    consts.PROJECT_ID: "dummy-gcp-project",
+    consts.GOOGLE_SERVICE_ACCOUNT_KEY_PATH: None,
+    "connection_name": "dummy-bq-connection",
+}  # same as CONNECTION_ADD_ARGS but with the command item replaced
+FIND_TABLES_ARGS = {
+    "verbose": False,
+    "log_level": "INFO",
+    "command": "find-tables",
+}
+DEPLOY_ARGS = {
+    "verbose": False,
+    "log_level": "INFO",
+    "command": "deploy",
+}
+GENERATE_PARTITIONS_CONFIG = {
+    "verbose": False,
+    "log_level": "INFO",
+    "command": "generate-table-partitions",
+    "partition_num": 9,
+    "parts_per_file": 5,
+    "tables_list": "my_schema.my_table",
+    consts.CONFIG_TYPE: consts.COLUMN_VALIDATION,
+}
+QUERY_CONFIG = {
+    "verbose": False,
+    "log_level": "INFO",
+    "command": "query",
+    "conn": "dummy-bq-connection",
+    "query": "SELECT 1 AS TEST",
+}
+
+
+class MockIbisClient(object):
+    _source_type = "BigQuery"
+    name = "bigquery"
 
 
 @mock.patch(
@@ -207,3 +327,194 @@ def test_config_runner_4(mock_args, mock_build, mock_run, caplog):
     )
     assert mock_run.call_count == 4
     assert e_info.value.args[0] == "Some of the validations raised an exception"
+
+
+@mock.patch("data_validation.__main__.run_validation")
+@mock.patch(
+    "data_validation.__main__.build_config_managers_from_args",
+    return_value=[
+        config_manager.ConfigManager(
+            VALIDATE_COLUMN_CONFIG, MockIbisClient(), MockIbisClient(), verbose=False
+        )
+    ],
+)
+@mock.patch(
+    "argparse.ArgumentParser.parse_args",
+    return_value=argparse.Namespace(**VALIDATE_COLUMN_CONFIG),
+)
+def test_successful_column_validation_with_mocked_run_validation(
+    mock_args, mock_build, mock_run
+):
+    main.main()
+
+
+@mock.patch("data_validation.__main__.run_validation")
+@mock.patch(
+    "data_validation.__main__.build_config_managers_from_args",
+    return_value=[
+        config_manager.ConfigManager(
+            BROKEN_VALIDATE_COLUMN_CONFIG_MISSING_COMMAND,
+            MockIbisClient(),
+            MockIbisClient(),
+            verbose=False,
+        )
+    ],
+)
+@mock.patch(
+    "argparse.ArgumentParser.parse_args",
+    return_value=argparse.Namespace(**BROKEN_VALIDATE_COLUMN_CONFIG_MISSING_COMMAND),
+)
+def test_throws_for_malformed_input_config_missing_command(
+    mock_args, mock_build, mock_run
+):
+    with pytest.raises(Exception) as e_info:
+        main.main()
+    assert e_info.value.args[0] == "'Namespace' object has no attribute 'command'"
+
+
+@mock.patch("data_validation.__main__.run_validation")
+@mock.patch(
+    "data_validation.__main__.build_config_managers_from_args",
+    return_value=[
+        config_manager.ConfigManager(
+            BROKEN_VALIDATE_COLUMN_CONFIG_INCORRECT_COMMAND,
+            MockIbisClient(),
+            MockIbisClient(),
+            verbose=False,
+        )
+    ],
+)
+@mock.patch(
+    "argparse.ArgumentParser.parse_args",
+    return_value=argparse.Namespace(**BROKEN_VALIDATE_COLUMN_CONFIG_INCORRECT_COMMAND),
+)
+def test_throws_for_malformed_input_config_incorrect_command(
+    mock_args, mock_build, mock_run
+):
+    with pytest.raises(ValueError) as e_info:
+        main.main()
+    assert (
+        e_info.value.args[0]
+        == "Positional Argument 'incorrectcommand' is not supported"
+    )
+
+
+@mock.patch("data_validation.__main__.run_validation")
+@mock.patch(
+    "data_validation.__main__.build_config_managers_from_args",
+    return_value=[
+        config_manager.ConfigManager(
+            VALIDATE_ROW_CONFIG, MockIbisClient(), MockIbisClient(), verbose=False
+        )
+    ],
+)
+@mock.patch(
+    "argparse.ArgumentParser.parse_args",
+    return_value=argparse.Namespace(**VALIDATE_ROW_CONFIG),
+)
+def test_successful_row_validation_with_mocked_run_validation(
+    mock_args, mock_build, mock_run
+):
+    main.main()
+
+
+@mock.patch("data_validation.__main__.run_validation")
+@mock.patch(
+    "data_validation.__main__.build_config_managers_from_yaml",
+    return_value=[
+        config_manager.ConfigManager(
+            VALIDATE_CONFIG, MockIbisClient(), MockIbisClient(), verbose=False
+        )
+    ],
+)
+@mock.patch(
+    "argparse.ArgumentParser.parse_args",
+    return_value=argparse.Namespace(**VALIDATE_CONFIG),
+)
+def test_successful_validation_config_with_mocked_run_validation(
+    mock_args, mock_build, mock_run
+):
+    main.main()
+
+
+@mock.patch(
+    "argparse.ArgumentParser.parse_args",
+    return_value=argparse.Namespace(**CONNECTION_LIST_ARGS),
+)
+@mock.patch("data_validation.cli_tools.list_connections")
+def test_successful_connection_list_with_mocked_list_connections(mock_args, mock_run):
+    main.main()
+
+
+@mock.patch("data_validation.clients.get_data_client")
+@mock.patch(
+    "argparse.ArgumentParser.parse_args",
+    return_value=argparse.Namespace(**CONNECTION_ADD_ARGS),
+)
+def test_successful_connection_add_with_mocked_list_connections(mock_args, mock_run):
+    main.main()
+
+
+@mock.patch("data_validation.clients.get_data_client")
+@mock.patch(
+    "argparse.ArgumentParser.parse_args",
+    return_value=argparse.Namespace(**BROKEN_CONNECTION_CONFIG_INCORRECT_COMMAND),
+)
+def test_throws_for_malformed_input_connection_config_incorrect_command(
+    mock_args, mock_run
+):
+    with pytest.raises(ValueError) as e_info:
+        main.main()
+    assert (
+        e_info.value.args[0]
+        == "Connections Argument 'incorrectconnectioncommand' is not supported"
+    )
+
+
+@mock.patch("data_validation.__main__.find_tables_using_string_matching")
+@mock.patch(
+    "argparse.ArgumentParser.parse_args",
+    return_value=argparse.Namespace(**FIND_TABLES_ARGS),
+)
+def test_successful_find_tables_with_mock(mock_args, mock_run):
+    main.main()
+
+
+@mock.patch("data_validation.app.app.run")
+@mock.patch(
+    "argparse.ArgumentParser.parse_args",
+    return_value=argparse.Namespace(**DEPLOY_ARGS),
+)
+def test_successful_deploy_with_mocked_app_run(mock_args, mock_run):
+    main.main()
+
+
+@mock.patch("data_validation.__main__.PartitionBuilder")
+@mock.patch(
+    "data_validation.__main__.build_config_managers_from_args",
+    return_value=[
+        config_manager.ConfigManager(
+            GENERATE_PARTITIONS_CONFIG,
+            MockIbisClient(),
+            MockIbisClient(),
+            verbose=False,
+        )
+    ],
+)
+@mock.patch(
+    "argparse.ArgumentParser.parse_args",
+    return_value=argparse.Namespace(**GENERATE_PARTITIONS_CONFIG),
+)
+def test_successful_generate_partitions_with_mocked_partition_builder(
+    mock_args, mock_build, mock_run
+):
+    main.main()
+
+
+@mock.patch("data_validation.clients.get_data_client")
+@mock.patch(
+    "argparse.ArgumentParser.parse_args",
+    return_value=argparse.Namespace(**QUERY_CONFIG),
+)
+def test_successful_query_with_mocked_get_data_client(mock_args, mock_run):
+    main.main()
