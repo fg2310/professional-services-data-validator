@@ -1249,6 +1249,24 @@ def test_row_validation_core_types(mock_conn):
     "data_validation.state_manager.StateManager.get_connection_config",
     return_value=BQ_CONN,
 )
+def test_row_validation_core_types_auto_pks(mock_conn):
+    """Test auto population of -pks from BigQuery - expect an exception.
+
+    Expects:
+      ValueError: --primary-keys argument is required for this validation
+    """
+    with pytest.raises(ValueError):
+        row_validation_test(
+            tc="mock-conn",
+            hash="col_int8,col_int16",
+            primary_keys=None,
+        )
+
+
+@mock.patch(
+    "data_validation.state_manager.StateManager.get_connection_config",
+    return_value=BQ_CONN,
+)
 def test_custom_query_validation_core_types(mock_conn):
     """BigQuery to BigQuery dvt_core_types custom-query validation"""
     custom_query_validation_test(tc="mock-conn", count_cols="*")

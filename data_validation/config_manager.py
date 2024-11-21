@@ -1177,3 +1177,20 @@ class ConfigManager(object):
         )
 
         return casefold_source_columns
+
+    def auto_list_primary_keys(self) -> list:
+        """Returns a list of primary key columns based on the source/target table.
+
+        If neither source nor target systems have a primary key defined then [] is returned.
+        """
+        assert (
+            self.validation_type != consts.CUSTOM_QUERY
+        ), "Custom query validations should not be able to reach this method"
+        primary_keys = self.source_client.list_primary_key_columns(
+            self.source_schema, self.source_table
+        )
+        if not primary_keys:
+            primary_keys = self.target_client.list_primary_key_columns(
+                self.target_schema, self.target_table
+            )
+        return primary_keys or []

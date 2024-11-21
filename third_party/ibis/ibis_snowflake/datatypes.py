@@ -50,4 +50,15 @@ def _metadata(self, query: str) -> Iterable[Tuple[str, dt.DataType]]:
         yield name, typ
 
 
+def _list_primary_key_columns(self, database: str, table: str) -> list:
+    """Return a list of primary key column names."""
+    # From https://docs.snowflake.com/en/sql-reference/sql/show-primary-keys
+    # Column name is 5th field in output.
+    list_pk_col_sql = f"SHOW PRIMARY KEYS IN {database}.{table};"
+    with self.begin() as con:
+        result = con.exec_driver_sql(list_pk_col_sql)
+        return [_[4] for _ in result.cursor.fetchall()]
+
+
 SnowflakeBackend._metadata = _metadata
+SnowflakeBackend.list_primary_key_columns = _list_primary_key_columns

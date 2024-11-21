@@ -608,3 +608,79 @@ def test_get_query_from_inline(test_input: str, expect_exception: bool):
     else:
         query = cli_tools.get_query_from_inline(test_input)
         assert query in test_input
+
+
+def test_arg_parser_help(capsys):
+    """Test --help arg."""
+    parser = cli_tools.configure_arg_parser()
+    with pytest.raises(SystemExit):
+        _ = parser.parse_args(["--help"])
+    captured = capsys.readouterr()
+    assert cli_tools.VALIDATE_HELP_TEXT in captured.out
+
+
+def test_arg_parser_validate_help(capsys):
+    """Test validate --help arg."""
+    parser = cli_tools.configure_arg_parser()
+    with pytest.raises(SystemExit):
+        _ = parser.parse_args(["validate", "--help"])
+    captured = capsys.readouterr()
+    assert cli_tools.VALIDATE_COLUMN_HELP_TEXT in captured.out
+    assert cli_tools.VALIDATE_ROW_HELP_TEXT in captured.out
+    assert cli_tools.VALIDATE_SCHEMA_HELP_TEXT in captured.out
+    assert cli_tools.VALIDATE_CUSTOM_QUERY_HELP_TEXT in captured.out
+
+
+def test_arg_parser_validate_column_help(capsys):
+    """Test validate column --help arg."""
+    parser = cli_tools.configure_arg_parser()
+    with pytest.raises(SystemExit):
+        _ = parser.parse_args(["validate", "column", "--help"])
+    captured = capsys.readouterr()
+    assert "--sum" in captured.out
+    assert "--hash" not in captured.out
+    assert "--source-query" not in captured.out
+    assert "--primary-keys" not in captured.out
+
+
+def test_arg_parser_validate_row_help(capsys):
+    """Test validate row --help arg."""
+    parser = cli_tools.configure_arg_parser()
+    with pytest.raises(SystemExit):
+        _ = parser.parse_args(["validate", "row", "--help"])
+    captured = capsys.readouterr()
+    assert "--hash" in captured.out
+    assert "--source-query" not in captured.out
+    assert "--primary-keys" in captured.out
+
+
+def test_arg_parser_validate_schema_help(capsys):
+    """Test validate column --help arg."""
+    parser = cli_tools.configure_arg_parser()
+    with pytest.raises(SystemExit):
+        _ = parser.parse_args(["validate", "column", "--help"])
+    captured = capsys.readouterr()
+    assert "--sum" in captured.out
+    assert "--hash" not in captured.out
+    assert "--source-query" not in captured.out
+    assert "--primary-keys" not in captured.out
+
+
+def test_arg_parser_validate_custom_query_row_help(capsys):
+    """Test validate custom-query row --help arg."""
+    parser = cli_tools.configure_arg_parser()
+    with pytest.raises(SystemExit):
+        _ = parser.parse_args(["validate", "custom-query", "row", "--help"])
+    captured = capsys.readouterr()
+    assert "--hash" in captured.out
+    assert "--source-query" in captured.out
+    assert "--primary-keys" in captured.out
+
+
+def test_arg_parser_generate_table_partitions_help(capsys):
+    """Test generate-table-partitions --help arg."""
+    parser = cli_tools.configure_arg_parser()
+    with pytest.raises(SystemExit):
+        _ = parser.parse_args(["generate-table-partitions", "--help"])
+    captured = capsys.readouterr()
+    assert "--partition-num" in captured.out

@@ -156,16 +156,15 @@ In addition, please note that SHA256 is not a supported function on Teradata sys
 If you wish to perform this comparison on Teradata you will need to
 [deploy a UDF to perform the conversion](https://github.com/akuroda/teradata-udf-sha2/blob/master/src/sha256.c).)
 
-Below is the command syntax for row validations. In order to run row level
-validations you need to pass a `--primary-key` flag which defines what field(s)
-the validation will be compared on, as well as either the `--comparison-fields` flag
-or the `--hash` flag. See *Primary Keys* section
+Below is the command syntax for row validations. In order to run row level validations we require
+unique columns to join row sets, which are either inferred from the source/target table or provided
+via the `--primary-keys` flag, and either the `--hash`, `--concat` or `--comparison-fields` flags.
+See *Primary Keys* section.
 
 The `--comparison-fields` flag specifies the values (e.g. columns) whose raw values will be compared
 based on the primary key join. The `--hash` flag will run a checksum across specified columns in
 the table. This will include casting to string, sanitizing the data (ifnull, rtrim, upper), concatenating,
 and finally hashing the row.
-
 
 Under the hood, row validation uses
 [Calculated Fields](https://github.com/GoogleCloudPlatform/professional-services-data-validator#calculated-fields) to
@@ -188,13 +187,14 @@ data-validation
                         Comma separated list of tables in the form schema.table=target_schema.target_table
                         Target schema name and table name are optional.
                         i.e 'bigquery-public-data.new_york_citibike.citibike_trips'
-  --primary-keys or -pk PRIMARY_KEYS
-                        Comma separated list of columns to use as primary keys.  See *Primary Keys* section
   --comparison-fields or -comp-fields FIELDS
                         Comma separated list of columns to compare. Can either be a physical column or an alias
                         See: *Calculated Fields* section for details
   --hash COLUMNS        Comma separated list of columns to hash or * for all columns
   --concat COLUMNS      Comma separated list of columns to concatenate or * for all columns (use if a common hash function is not available between databases)
+  [--primary-keys PRIMARY_KEYS, -pk PRIMARY_KEYS]
+                        Comma separated list of primary key columns, when not specified the value will be inferred
+                        from the source or target table if available.  See *Primary Keys* section
   [--exclude-columns or -ec]
                         Flag to indicate the list of columns provided should be excluded from hash or concat instead of included.
   [--bq-result-handler or -bqrh PROJECT_ID.DATASET.TABLE]
@@ -262,8 +262,6 @@ data-validation
                         Either --tables-list or --source-query (or file) and --target-query (or file) must be provided
   --target-query-file TARGET_QUERY_FILE, -tqf TARGET_QUERY_FILE
                         File containing the target sql command. Supports GCS and local paths.
-  --primary-keys PRIMARY_KEYS, -pk PRIMARY_KEYS
-                        Comma separated list of primary key columns 'col_a,col_b'.  See *Primary Keys* section
   --comparison-fields or -comp-fields FIELDS
                         Comma separated list of columns to compare. Can either be a physical column or an alias
                         See: *Calculated Fields* section for details
@@ -277,6 +275,9 @@ data-validation
   --partition-num INT, -pn INT
                         Number of partitions into which the table should be split, e.g. 1000 or 10000
                         In case this value exceeds the row count of the source/target table, it will be decreased to max(source_row_count, target_row_count)
+  [--primary-keys PRIMARY_KEYS, -pk PRIMARY_KEYS]
+                        Comma separated list of primary key columns, when not specified the value will be inferred
+                        from the source or target table if available.  See *Primary Keys* section
   [--bq-result-handler or -bqrh PROJECT_ID.DATASET.TABLE]
                         BigQuery destination for validation results. Defaults to stdout.
                         See: *Validation Reports* section
@@ -448,8 +449,8 @@ data-validation
   --hash '*'            '*' to hash all columns.
   --concat COLUMNS      Comma separated list of columns to concatenate or * for all columns
                         (use if a common hash function is not available between databases)
-  --primary-key or -pk JOIN_KEY
-                       Common column between source and target tables for join
+  [--primary-keys PRIMARY_KEYS, -pk PRIMARY_KEYS]
+                       Common column between source and target queries for join
   [--exclude-columns or -ec]
                         Flag to indicate the list of columns provided should be excluded from hash or concat instead of included.
   [--bq-result-handler or -bqrh PROJECT_ID.DATASET.TABLE]
@@ -678,6 +679,8 @@ target tables.
 In many cases, validations (e.g. count, min, max etc) produce one row per table. The comparison between the source
 and target table is to compare the value for each column in the source with the value of the column in the target.
 `grouped-columns` validation and `validate row` produce multiple rows per table. Data Validation Tool needs one or more columns to uniquely identify each row so the source and target can be compared. Data Validation Tool refers to these columns as primary keys. These do not need to be primary keys in the table. The only requirement is that the keys uniquely identify the row in the results.
+
+These columns are inferred, where possible, from the source/target table or can be provided via the `--primary-keys` flag.
 
 ### Grouped Columns
 

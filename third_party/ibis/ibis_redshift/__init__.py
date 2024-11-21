@@ -105,6 +105,11 @@ class Backend(BaseAlchemyBackend):
     ) -> str:
         yield f"CREATE OR REPLACE TEMPORARY VIEW {name} AS {definition}"
 
+    def list_primary_key_columns(self, database: str, table: str) -> list:
+        """Return a list of primary key column names."""
+        # TODO: Related to issue-1253, it's not clear if this is possible, we should revisit if it becomes a requirement.
+        return None
+
 
 def _get_type(typestr: str) -> dt.DataType:
     is_array = typestr.endswith(_BRACKETS)

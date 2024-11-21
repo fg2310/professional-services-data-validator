@@ -268,6 +268,20 @@ def test_row_validation_core_types():
     "data_validation.state_manager.StateManager.get_connection_config",
     new=mock_get_connection_config,
 )
+def test_row_validation_core_types_auto_pks():
+    """Test auto population of -pks from Snowflake defined constraint."""
+    row_validation_test(
+        tables="PSO_DATA_VALIDATOR.PUBLIC.DVT_CORE_TYPES",
+        tc="mock-conn",
+        hash="col_int8,col_int16",
+        primary_keys=None,
+    )
+
+
+@mock.patch(
+    "data_validation.state_manager.StateManager.get_connection_config",
+    new=mock_get_connection_config,
+)
 def test_row_validation_core_types_to_bigquery():
     """Snowflake to BigQuery dvt_core_types row validation"""
     row_validation_test(

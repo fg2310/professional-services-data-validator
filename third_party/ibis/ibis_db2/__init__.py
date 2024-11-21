@@ -84,3 +84,20 @@ class Backend(BaseAlchemyBackend):
                 (column[0].lower(), _get_type(column[1]))
                 for column in cursor.description
             )
+
+    def list_primary_key_columns(self, database: str, table: str) -> list:
+        """Return a list of primary key column names."""
+        list_pk_col_sql = """
+            SELECT key.colname
+            FROM syscat.tables tab
+            INNER JOIN syscat.tabconst const ON const.tabschema = tab.tabschema AND const.tabname = tab.tabname and const.type = 'P'
+            INNER JOIN syscat.keycoluse key ON const.tabschema = key.tabschema AND const.tabname = key.tabname AND const.constname = key.constname
+            WHERE tab.type = 'T'
+            AND tab.tabschema = ?
+            AND tab.tabname = ?
+            ORDER BY key.colseq"""
+        with self.begin() as con:
+            result = con.exec_driver_sql(
+                list_pk_col_sql, parameters=(database.upper(), table.upper())
+            )
+            return [_[0] for _ in result.cursor.fetchall()]

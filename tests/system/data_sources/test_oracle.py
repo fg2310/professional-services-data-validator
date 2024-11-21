@@ -329,6 +329,19 @@ def test_row_validation_core_types():
     "data_validation.state_manager.StateManager.get_connection_config",
     new=mock_get_connection_config,
 )
+def test_row_validation_core_types_auto_pks():
+    """Test auto population of -pks from Oracle defined constraint."""
+    row_validation_test(
+        tc="mock-conn",
+        hash="col_int8,col_int16",
+        primary_keys=None,
+    )
+
+
+@mock.patch(
+    "data_validation.state_manager.StateManager.get_connection_config",
+    new=mock_get_connection_config,
+)
 def test_row_validation_core_types_to_bigquery():
     """Oracle to BigQuery dvt_core_types row validation"""
     # Excluded col_float32,col_float64 due to the lossy nature of BINARY_FLOAT/DOUBLE.

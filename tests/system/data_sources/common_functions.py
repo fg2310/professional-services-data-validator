@@ -292,7 +292,7 @@ def row_validation_test(
         f"-tc={tc}",
         f"-tbls={tables}",
         f"--filters={filters}",
-        f"--primary-keys={primary_keys}",
+        f"--primary-keys={primary_keys}" if primary_keys else None,
         "--filter-status=fail",
         f"--comparison-fields={comp_fields}" if comp_fields else f"--hash={hash}",
         "--use-random-row" if use_randow_row else None,

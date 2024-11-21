@@ -175,14 +175,14 @@ class Backend(BaseSQLBackend):
                 adapted_types.append(typename)
         return dict(zip(names, adapted_types))
 
-    def _execute(self, sql, results=False):
+    def _execute(self, sql, results=False, params=None):
         if self.use_no_lock_tables and sql.strip().startswith("SELECT"):
             sql = self.NO_LOCK_SQL + sql
 
         with warnings.catch_warnings():
             # Suppress pandas warning of SQLAlchemy connectable DB support
             warnings.simplefilter("ignore")
-            df = pandas.read_sql(sql, self.client)
+            df = pandas.read_sql(sql, self.client, params=params)
 
         if results:
             return df
@@ -258,6 +258,21 @@ class Backend(BaseSQLBackend):
             df = df.astype(dtypes)
 
         return df
+
+    def list_primary_key_columns(self, database: str, table: str):
+        """Return a list of primary key column names."""
+        list_pk_col_sql = """
+            SELECT ColumnName
+            FROM   DBC.IndicesV
+            WHERE  DatabaseName = ?
+            AND    TableName = ?
+            AND    IndexType = 'K'
+            ORDER BY ColumnPosition
+        """
+        tables_df = self._execute(
+            list_pk_col_sql, results=True, params=(database, table)
+        )
+        return list(tables_df.ColumnName.str.rstrip())
 
     # Methods we need to implement for BaseSQLBackend
     def create_table(self):

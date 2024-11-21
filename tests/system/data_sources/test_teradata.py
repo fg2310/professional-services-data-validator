@@ -334,6 +334,22 @@ def test_row_validation_core_types():
     )
 
 
+@mock.patch(
+    "data_validation.state_manager.StateManager.get_connection_config",
+    new=mock_get_connection_config,
+)
+def test_row_validation_core_types_auto_pks():
+    """Test auto population of -pks from Teradata defined constraint.
+
+    Tests this with comp-fields, some other engines test with hash validation."""
+    row_validation_test(
+        tables="udf.dvt_core_types",
+        tc="mock-conn",
+        comp_fields="col_int8,col_int16",
+        primary_keys=None,
+    )
+
+
 # Expected result from partitioning table on 3 keys
 EXPECTED_PARTITION_FILTER = [
     [

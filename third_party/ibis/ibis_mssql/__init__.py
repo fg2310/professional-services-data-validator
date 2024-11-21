@@ -93,3 +93,19 @@ class Backend(BaseAlchemyBackend):
         with self.begin() as bind:
             for column in bind.execute(query).mappings():
                 yield column["name"], _type_from_result_set_info(column)
+
+    def list_primary_key_columns(self, database: str, table: str) -> list:
+        """Return a list of primary key column names."""
+        list_pk_col_sql = """
+            SELECT COL_NAME(ic.object_id, ic.column_id) AS column_name
+            FROM sys.tables t
+            INNER JOIN sys.indexes i ON (t.object_id = i.object_id)
+            INNER JOIN sys.index_columns ic ON (i.object_id = ic.object_id AND i.index_id  = ic.index_id)
+            INNER JOIN sys.schemas s ON (t.schema_id = s.schema_id)
+            WHERE  s.name = ?
+            AND    t.name = ?
+            AND    i.is_primary_key = 1
+            ORDER BY ic.column_id"""
+        with self.begin() as con:
+            result = con.exec_driver_sql(list_pk_col_sql, parameters=(database, table))
+            return [_[0] for _ in result.cursor.fetchall()]

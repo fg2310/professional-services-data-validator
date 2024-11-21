@@ -156,6 +156,20 @@ def test_row_validation_core_types():
     "data_validation.state_manager.StateManager.get_connection_config",
     new=mock_get_connection_config,
 )
+def test_row_validation_core_types_auto_pks():
+    """Test auto population of -pks from DB2 defined constraint."""
+    row_validation_test(
+        tables="db2inst1.dvt_core_types",
+        tc="mock-conn",
+        hash="col_string",
+        primary_keys=None,
+    )
+
+
+@mock.patch(
+    "data_validation.state_manager.StateManager.get_connection_config",
+    new=mock_get_connection_config,
+)
 def test_row_validation_core_types_to_bigquery():
     """DB2 to BigQuery dvt_core_types row validation"""
     row_validation_test(

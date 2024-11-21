@@ -686,8 +686,22 @@ def test_row_validation_pg_types():
     "data_validation.state_manager.StateManager.get_connection_config",
     new=mock_get_connection_config,
 )
+def test_row_validation_core_types_auto_pks():
+    """Test auto population of -pks from PostgreSQL defined constraint."""
+    row_validation_test(
+        tables="pso_data_validator.dvt_core_types",
+        tc="mock-conn",
+        hash="col_int8,col_int16",
+        primary_keys=None,
+    )
+
+
+@mock.patch(
+    "data_validation.state_manager.StateManager.get_connection_config",
+    new=mock_get_connection_config,
+)
 def test_row_validation_comp_fields_pg_types():
-    """PostgreSQL to PostgreSQL dvt_core_types row validation with --comp-fields"""
+    """PostgreSQL to PostgreSQL dvt_pg_types row validation --comp-fields"""
     row_validation_test(
         tables="pso_data_validator.dvt_pg_types",
         tc="mock-conn",

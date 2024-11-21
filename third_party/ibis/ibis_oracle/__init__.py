@@ -146,3 +146,20 @@ class Backend(BaseAlchemyBackend):
             result = con.exec_driver_sql(f"SELECT * FROM {query} t0 WHERE ROWNUM <= 1")
             cursor = result.cursor
             yield from ((column[0], _get_type(column)) for column in cursor.description)
+
+    def list_primary_key_columns(self, database: str, table: str) -> list:
+        """Return a list of primary key column names."""
+        list_pk_col_sql = """
+            SELECT cc.column_name
+            FROM all_cons_columns cc
+            INNER JOIN all_constraints c ON (cc.owner = c.owner AND cc.constraint_name = c.constraint_name AND cc.table_name = c.table_name)
+            WHERE c.owner = :1
+            AND c.table_name = :2
+            AND c.constraint_type = 'P'
+            ORDER BY cc.position
+        """
+        with self.begin() as con:
+            result = con.exec_driver_sql(
+                list_pk_col_sql, parameters=(database.upper(), table.upper())
+            )
+            return [_[0] for _ in result.cursor.fetchall()]

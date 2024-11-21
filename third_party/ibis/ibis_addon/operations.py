@@ -69,6 +69,7 @@ from ibis.expr.operations import (
 from ibis.expr.types import BinaryValue, NumericValue, TemporalValue
 
 # Do not remove these lines, they trigger patching of Ibis code.
+import third_party.ibis.ibis_biquery.api  # noqa
 import third_party.ibis.ibis_mysql.compiler  # noqa
 from third_party.ibis.ibis_mssql.registry import mssql_table_column
 import third_party.ibis.ibis_postgres.client  # noqa

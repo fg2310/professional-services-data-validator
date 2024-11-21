@@ -170,6 +170,12 @@ CONNECTION_SOURCE_FIELDS = {
     ],
 }
 
+VALIDATE_HELP_TEXT = "Run a validation and optionally store to config"
+VALIDATE_COLUMN_HELP_TEXT = "Run a column validation"
+VALIDATE_ROW_HELP_TEXT = "Run a row validation"
+VALIDATE_SCHEMA_HELP_TEXT = "Run a schema validation"
+VALIDATE_CUSTOM_QUERY_HELP_TEXT = "Run a custom query validation"
+
 
 def _check_custom_query_args(parser: argparse.ArgumentParser, parsed_args: Namespace):
     # This is where we make additional checks if the arguments provided are what we expect
@@ -471,9 +477,7 @@ def _configure_database_specific_parsers(parser):
 
 def _configure_validate_parser(subparsers):
     """Configure arguments to run validations."""
-    validate_parser = subparsers.add_parser(
-        "validate", help="Run a validation and optionally store to config"
-    )
+    validate_parser = subparsers.add_parser("validate", help=VALIDATE_HELP_TEXT)
 
     validate_parser.add_argument(
         "--dry-run",
@@ -485,22 +489,22 @@ def _configure_validate_parser(subparsers):
     validate_subparsers = validate_parser.add_subparsers(dest="validate_cmd")
 
     column_parser = validate_subparsers.add_parser(
-        "column", help="Run a column validation"
+        "column", help=VALIDATE_COLUMN_HELP_TEXT
     )
     _configure_column_parser(column_parser)
 
-    row_parser = validate_subparsers.add_parser("row", help="Run a row validation")
+    row_parser = validate_subparsers.add_parser("row", help=VALIDATE_ROW_HELP_TEXT)
     optional_arguments = row_parser.add_argument_group("optional arguments")
     required_arguments = row_parser.add_argument_group("required arguments")
     _configure_row_parser(row_parser, optional_arguments, required_arguments)
 
     schema_parser = validate_subparsers.add_parser(
-        "schema", help="Run a schema validation"
+        "schema", help=VALIDATE_SCHEMA_HELP_TEXT
     )
     _configure_schema_parser(schema_parser)
 
     custom_query_parser = validate_subparsers.add_parser(
-        "custom-query", help="Run a custom query validation"
+        "custom-query", help=VALIDATE_CUSTOM_QUERY_HELP_TEXT
     )
     _configure_custom_query_parser(custom_query_parser)
 
@@ -514,6 +518,15 @@ def _configure_row_parser(
 ):
     """Configure arguments to run row level validations."""
     # Group optional arguments
+    optional_arguments.add_argument(
+        "--primary-keys",
+        "-pk",
+        help=(
+            "Comma separated list of primary key columns 'col_a,col_b', "
+            "when not specified the value will be inferred from the source or target table if available"
+        ),
+    )
+
     optional_arguments.add_argument(
         "--threshold",
         "-th",
@@ -585,14 +598,6 @@ def _configure_row_parser(
             required=True,
             help="Comma separated tables list in the form 'schema.table=target_schema.target_table'",
         )
-
-    # Group required arguments
-    required_arguments.add_argument(
-        "--primary-keys",
-        "-pk",
-        required=True,
-        help="Comma separated list of primary key columns 'col_a,col_b'",
-    )
 
     # Group for mutually exclusive required arguments. Either must be supplied
     mutually_exclusive_arguments = required_arguments.add_mutually_exclusive_group(
