@@ -22,6 +22,7 @@ def spanner_connect(
     database_id,
     project_id=None,
     credentials=None,
+    api_endpoint=None,
 ):
     """Create a Cloud Spanner Backend for use with Ibis.
 
@@ -40,5 +41,6 @@ def spanner_connect(
         database_id=database_id,
         project_id=project_id,
         credentials=credentials,
+        api_endpoint=api_endpoint,
     )
     return backend

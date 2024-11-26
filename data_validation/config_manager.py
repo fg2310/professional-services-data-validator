@@ -479,11 +479,13 @@ class ConfigManager(object):
                 )
             else:
                 credentials = None
+            api_endpoint = self.result_handler_config.get(consts.API_ENDPOINT)
             return BigQueryResultHandler.get_handler_for_project(
                 project_id,
                 self.filter_status,
                 table_id=table_id,
                 credentials=credentials,
+                api_endpoint=api_endpoint,
                 text_format=self._config.get(consts.CONFIG_FORMAT, "table"),
             )
         else:

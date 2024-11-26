@@ -20,6 +20,9 @@ from google.cloud import storage
 from data_validation import client_info
 
 
+WRITE_SUCCESS_STRING = "Success! Config output written to"
+
+
 def _is_gcs_path(file_path: str) -> bool:
     return True if file_path.startswith("gs://") else False
 
@@ -81,7 +84,7 @@ def write_file(file_path: str, data: str, include_log: bool = True):
             file.write(data)
 
     if include_log:
-        logging.info("Success! Config output written to {}".format(file_path))
+        logging.info(f"{WRITE_SUCCESS_STRING} {file_path}")
 
 
 def list_gcs_directory(directory_path: str) -> List[str]:

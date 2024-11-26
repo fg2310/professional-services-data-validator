@@ -19,9 +19,10 @@ from typing import TYPE_CHECKING
 import warnings
 
 import google.oauth2.service_account
+from google.cloud import bigquery
+from google.api_core import client_options
 import ibis
 import pandas
-from google.cloud import bigquery
 
 from data_validation import client_info, consts, exceptions
 from data_validation.secret_manager import SecretManagerBuilder
@@ -90,16 +91,30 @@ except Exception:
     db2_connect = _raise_missing_client_error("pip install ibm_db_sa")
 
 
-def get_bigquery_client(project_id, dataset_id="", credentials=None):
+def get_google_bigquery_client(
+    project_id: str, credentials=None, api_endpoint: str = None
+):
     info = client_info.get_http_client_info()
     job_config = bigquery.QueryJobConfig(
         connection_properties=[bigquery.ConnectionProperty("time_zone", "UTC")]
     )
-    google_client = bigquery.Client(
+    options = None
+    if api_endpoint:
+        options = client_options.ClientOptions(api_endpoint=api_endpoint)
+    return bigquery.Client(
         project=project_id,
         client_info=info,
         credentials=credentials,
         default_query_job_config=job_config,
+        client_options=options,
+    )
+
+
+def get_bigquery_client(
+    project_id: str, dataset_id: str = "", credentials=None, api_endpoint: str = None
+):
+    google_client = get_google_bigquery_client(
+        project_id, credentials=credentials, api_endpoint=api_endpoint
     )
 
     ibis_client = ibis.bigquery.connect(
@@ -109,7 +124,7 @@ def get_bigquery_client(project_id, dataset_id="", credentials=None):
     )
 
     # Override the BigQuery client object to ensure the correct user agent is
-    # included.
+    # included and any api_endpoint is used.
     ibis_client.client = google_client
     return ibis_client
 

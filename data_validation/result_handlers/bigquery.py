@@ -16,10 +16,11 @@
 
 import logging
 
-from google.cloud import bigquery
-
-from data_validation import client_info
+from data_validation import clients
 from data_validation.result_handlers import text as text_handler
+
+
+BQRH_WRITE_MESSAGE = "Results written to BigQuery"
 
 
 class BigQueryResultHandler(object):
@@ -51,6 +52,7 @@ class BigQueryResultHandler(object):
         status_list=None,
         table_id: str = "pso_data_validator.results",
         credentials=None,
+        api_endpoint: str = None,
         text_format: str = "table",
     ):
         """Return BigQueryResultHandler instance for given project.
@@ -62,16 +64,19 @@ class BigQueryResultHandler(object):
                 Explicit credentials to use in case default credentials
                 aren't working properly.
             status_list (list): provided status to filter the results with
+            api_endpoint (str): BigQuery API endpoint (e.g. https://mybq.p.googleapis.com)
             text_format (str, optional):
                 This allows the user to influence the text results written via logger.debug.
                 See: https://github.com/GoogleCloudPlatform/professional-services-data-validator/issues/871
         """
-        info = client_info.get_http_client_info()
-        client = bigquery.Client(
-            project=project_id, client_info=info, credentials=credentials
+        client = clients.get_google_bigquery_client(
+            project_id, credentials=credentials, api_endpoint=api_endpoint
         )
         return BigQueryResultHandler(
-            client, status_list=status_list, table_id=table_id, text_format=text_format
+            client,
+            status_list=status_list,
+            table_id=table_id,
+            text_format=text_format,
         )
 
     def execute(self, result_df):
@@ -106,9 +111,7 @@ class BigQueryResultHandler(object):
         if result_df.empty:
             logging.info("No results to write to BigQuery")
         else:
-            logging.info(
-                f'Results written to BigQuery, run id: {result_df.iloc[0]["run_id"]}'
-            )
+            logging.info(f'{BQRH_WRITE_MESSAGE}, run id: {result_df.iloc[0]["run_id"]}')
 
         # Handler also logs results after saving to BigQuery.
         logger = logging.getLogger()

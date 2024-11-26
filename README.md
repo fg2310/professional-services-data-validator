@@ -113,7 +113,7 @@ data-validation
   [--std COLUMNS]       Comma separated list of columns for stddev_samp or * for all numeric
   [--exclude-columns or -ec]
                         Flag to indicate the list of columns provided should be excluded and not included.
-  [--bq-result-handler or -bqrh PROJECT_ID.DATASET.TABLE]
+  [--bq-result-handler or -bqrh PROJECT_ID.DATASET.TABLE or CONNECTION_NAME.DATASET.TABLE]
                         BigQuery destination for validation results. Defaults to stdout.
                         See: *Validation Reports* section
   [--service-account or -sa PATH_TO_SA_KEY]
@@ -197,7 +197,7 @@ data-validation
                         from the source or target table if available.  See *Primary Keys* section
   [--exclude-columns or -ec]
                         Flag to indicate the list of columns provided should be excluded from hash or concat instead of included.
-  [--bq-result-handler or -bqrh PROJECT_ID.DATASET.TABLE]
+  [--bq-result-handler or -bqrh PROJECT_ID.DATASET.TABLE or CONNECTION_NAME.DATASET.TABLE]
                         BigQuery destination for validation results. Defaults to stdout.
                         See: *Validation Reports* section
   [--service-account or -sa PATH_TO_SA_KEY]
@@ -278,7 +278,7 @@ data-validation
   [--primary-keys PRIMARY_KEYS, -pk PRIMARY_KEYS]
                         Comma separated list of primary key columns, when not specified the value will be inferred
                         from the source or target table if available.  See *Primary Keys* section
-  [--bq-result-handler or -bqrh PROJECT_ID.DATASET.TABLE]
+  [--bq-result-handler or -bqrh PROJECT_ID.DATASET.TABLE or CONNECTION_NAME.DATASET.TABLE]
                         BigQuery destination for validation results. Defaults to stdout.
                         See: *Validation Reports* section
   [--service-account or -sa PATH_TO_SA_KEY]
@@ -324,7 +324,7 @@ data-validation
                         Comma separated list of tables in the form schema.table=target_schema.target_table. Or shorthand schema.* for all tables.
                         Target schema name and table name are optional.
                         e.g.: 'bigquery-public-data.new_york_citibike.citibike_trips'
-  [--bq-result-handler or -bqrh PROJECT_ID.DATASET.TABLE]
+  [--bq-result-handler or -bqrh PROJECT_ID.DATASET.TABLE or CONNECTION_NAME.DATASET.TABLE]
                         BigQuery destination for validation results. Defaults to stdout.
                         See: *Validation Reports* section
   [--service-account or -sa PATH_TO_SA_KEY]
@@ -384,7 +384,7 @@ data-validation
   [--std COLUMNS]       Comma separated list of columns for stddev_samp or * for all numeric
   [--exclude-columns or -ec]
                         Flag to indicate the list of columns provided should be excluded and not included.
-  [--bq-result-handler or -bqrh PROJECT_ID.DATASET.TABLE]
+  [--bq-result-handler or -bqrh PROJECT_ID.DATASET.TABLE or CONNECTION_NAME.DATASET.TABLE]
                         BigQuery destination for validation results. Defaults to stdout.
                         See: *Validation Reports* section
   [--service-account or -sa PATH_TO_SA_KEY]
@@ -453,7 +453,7 @@ data-validation
                        Common column between source and target queries for join
   [--exclude-columns or -ec]
                         Flag to indicate the list of columns provided should be excluded from hash or concat instead of included.
-  [--bq-result-handler or -bqrh PROJECT_ID.DATASET.TABLE]
+  [--bq-result-handler or -bqrh PROJECT_ID.DATASET.TABLE or CONNECTION_NAME.DATASET.TABLE]
                         BigQuery destination for validation results. Defaults to stdout.
                         See: *Validation Reports* section
   [--service-account or -sa PATH_TO_SA_KEY]
