@@ -23,6 +23,7 @@ from tests.system.data_sources.common_functions import (
     binary_key_assertions,
     id_type_test_assertions,
     null_not_null_assertions,
+    raw_query_test,
     row_validation_many_columns_test,
     run_test_from_cli_args,
     schema_validation_test,
@@ -401,3 +402,12 @@ def test_custom_query_row_validation_many_columns():
     This is testing many columns logic for --hash, there's a Teradata test for --concat.
     """
     row_validation_many_columns_test(validation_type="custom-query")
+
+
+@mock.patch(
+    "data_validation.state_manager.StateManager.get_connection_config",
+    new=mock_get_connection_config,
+)
+def test_raw_query_dvt_row_types(capsys):
+    """Test data-validation query command."""
+    raw_query_test(capsys)

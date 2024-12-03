@@ -25,6 +25,7 @@ from data_validation import (
     clients,
     consts,
     exceptions,
+    raw_query,
     state_manager,
     util,
 )
@@ -456,19 +457,6 @@ def build_config_managers_from_yaml(args, config_file_path):
     return config_managers
 
 
-def run_raw_query_against_connection(args):
-    """Return results of raw query for ad hoc usage."""
-    mgr = state_manager.StateManager()
-    client = clients.get_data_client(mgr.get_connection_config(args.conn))
-    cursor = client.raw_sql(args.query)
-    res = cursor.fetchall()
-    try:
-        cursor.close()
-    except Exception:
-        pass
-    return res
-
-
 def convert_config_to_yaml(args, config_managers: list):
     """Return dict objects formatted for yaml validations.
 
@@ -698,7 +686,9 @@ def main():
     elif args.command == "find-tables":
         print(find_tables_using_string_matching(args))
     elif args.command == "query":
-        print(run_raw_query_against_connection(args))
+        raw_query.print_raw_query_output(
+            raw_query.run_raw_query_against_connection(args)
+        )
     elif args.command == "validate":
         validate(args)
     elif args.command == "generate-table-partitions":

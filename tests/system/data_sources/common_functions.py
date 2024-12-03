@@ -18,7 +18,7 @@ from typing import TYPE_CHECKING
 import pathlib
 
 from data_validation import __main__ as main
-from data_validation import consts, data_validation
+from data_validation import consts, data_validation, raw_query
 
 from data_validation import (
     cli_tools,
@@ -455,3 +455,28 @@ def custom_query_validation_test(
     else:
         # With filter on failures the data frame should be empty
         assert len(df) == 0
+
+
+def raw_query_test(
+    capsys,
+    conn: str = "mock-conn",
+    query: str = "select * from pso_data_validator.dvt_core_types",
+    table: str = None,
+    expected_rows: int = 3,
+):
+    """Raw query test."""
+    parser = cli_tools.configure_arg_parser()
+    if table:
+        query = f"select * from {table}"
+    cli_arg_list = [
+        "query",
+        f"--conn={conn}",
+        f"--query={query}",
+    ]
+    args = parser.parse_args(cli_arg_list)
+    rows = raw_query.run_raw_query_against_connection(args)
+    assert len(rows) == expected_rows
+    assert len(rows[0]) > 0
+    raw_query.print_raw_query_output(rows)
+    captured = capsys.readouterr()
+    assert "characters truncated" not in captured.out

@@ -26,6 +26,7 @@ from tests.system.data_sources.common_functions import (
     find_tables_assertions,
     id_type_test_assertions,
     null_not_null_assertions,
+    raw_query_test,
     row_validation_many_columns_test,
     row_validation_test,
     run_test_from_cli_args,
@@ -769,4 +770,29 @@ def test_row_validation_comp_fields_bool_to_postgres():
         tables="pso_data_validator.dvt_bool",
         tc="pg-conn",
         comp_fields="col_bool_dec,col_bool_int,col_bool_ch1,col_bool_chy",
+    )
+
+
+@mock.patch(
+    "data_validation.state_manager.StateManager.get_connection_config",
+    new=mock_get_connection_config,
+)
+def test_raw_query_dvt_row_types(capsys):
+    """Test data-validation query command."""
+    raw_query_test(capsys)
+
+
+@mock.patch(
+    "data_validation.state_manager.StateManager.get_connection_config",
+    new=mock_get_connection_config,
+)
+def test_raw_query_long_string(capsys):
+    """Test data-validation query command with very long string output.
+
+    We don't need to test this for each engine, just one will suffice."""
+    raw_query_test(
+        capsys,
+        query="""SELECT RPAD('some-long-string',256,'x') c FROM dual UNION ALL
+                 SELECT RPAD('some-long-string',512,'y') c FROM dual""",
+        expected_rows=2,
     )

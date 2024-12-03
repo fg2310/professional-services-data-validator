@@ -23,6 +23,7 @@ from tests.system.data_sources.common_functions import (
     binary_key_assertions,
     id_type_test_assertions,
     null_not_null_assertions,
+    raw_query_test,
     row_validation_many_columns_test,
     run_test_from_cli_args,
     schema_validation_test,
@@ -458,3 +459,12 @@ def test_row_validation_identifiers():
         tc="mock-conn",
         hash="*",
     )
+
+
+@mock.patch(
+    "data_validation.state_manager.StateManager.get_connection_config",
+    new=mock_get_connection_config,
+)
+def test_raw_query_dvt_row_types(capsys):
+    """Test data-validation query command."""
+    raw_query_test(capsys, table="PSO_DATA_VALIDATOR.PUBLIC.DVT_CORE_TYPES")

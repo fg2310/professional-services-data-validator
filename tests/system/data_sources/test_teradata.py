@@ -21,16 +21,17 @@ import pathlib
 from data_validation import cli_tools, data_validation, consts
 from tests.system.data_sources.common_functions import (
     binary_key_assertions,
-    id_type_test_assertions,
-    null_not_null_assertions,
-    row_validation_many_columns_test,
-    run_test_from_cli_args,
-    partition_table_test,
-    partition_query_test,
-    row_validation_test,
-    schema_validation_test,
     column_validation_test,
     custom_query_validation_test,
+    id_type_test_assertions,
+    null_not_null_assertions,
+    partition_table_test,
+    partition_query_test,
+    raw_query_test,
+    row_validation_many_columns_test,
+    run_test_from_cli_args,
+    row_validation_test,
+    schema_validation_test,
 )
 from tests.system.data_sources.test_bigquery import BQ_CONN
 
@@ -706,3 +707,12 @@ def test_row_validation_comp_fields_bool_to_bigquery():
         tc="bq-conn",
         comp_fields="col_bool_dec,col_bool_int,col_bool_ch1,col_bool_chy",
     )
+
+
+@mock.patch(
+    "data_validation.state_manager.StateManager.get_connection_config",
+    new=mock_get_connection_config,
+)
+def test_raw_query_dvt_row_types(capsys):
+    """Test data-validation query command."""
+    raw_query_test(capsys, table="udf.dvt_core_types")

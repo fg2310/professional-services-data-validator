@@ -38,6 +38,7 @@ from tests.system.data_sources.common_functions import (
     row_validation_many_columns_test,
     schema_validation_test,
     column_validation_test,
+    raw_query_test,
     row_validation_test,
     custom_query_validation_test,
 )
@@ -1380,3 +1381,12 @@ def test_bq_result_handler(mock_conn, bigquery_client, bigquery_dataset_id, capl
         bq_result_handler=f"{PROJECT_ID}.{table_id}",
     )
     assert any(_ for _ in caplog.records if BQRH_WRITE_MESSAGE in _.msg)
+
+
+@mock.patch(
+    "data_validation.state_manager.StateManager.get_connection_config",
+    return_value=BQ_CONN,
+)
+def test_raw_query_dvt_row_types(mock_conn, capsys):
+    """Test data-validation query command."""
+    raw_query_test(capsys)
