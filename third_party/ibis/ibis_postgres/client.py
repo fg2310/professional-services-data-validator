@@ -17,9 +17,9 @@ from typing import Literal
 import ibis.expr.datatypes as dt
 import ibis.expr.schema as sch
 import sqlalchemy as sa
-from ibis import util
 from ibis.backends.postgres import Backend as PostgresBackend
 from ibis.backends.postgres.datatypes import _BRACKETS, _parse_numeric, _type_mapping
+import re
 
 
 def do_connect(
@@ -72,22 +72,31 @@ def do_connect(
 
 
 def _metadata(self, query: str) -> sch.Schema:
-    raw_name = util.guid()
-    name = self._quote(raw_name)
-    type_info_sql = """\
-    SELECT
-    attname,
-    format_type(atttypid, atttypmod) AS type
-    FROM pg_attribute
-    WHERE attrelid = CAST(:raw_name AS regclass)
-    AND attnum > 0
-    AND NOT attisdropped
-    ORDER BY attnum"""
+    # This function is called when ibis has to figure out the datatypes of columns in a custom query validation OR
+    # when ibis encounters a column with a datatype not supported in https://ibis-project.org/reference/datatypes
+    # In the latter case, this just returns None for that column, resulting in a NotImplementedError elsewhere.
+    query = (
+        f"({query})"
+        if re.search(r"^\s*SELECT\s", query, flags=re.MULTILINE | re.IGNORECASE)
+        else query
+    )
     with self.begin() as con:
-        con.exec_driver_sql(f"CREATE TEMPORARY VIEW {name} AS {query}")
-        type_info = con.execute(sa.text(type_info_sql).bindparams(raw_name=raw_name))
-        yield from ((col, _get_type(typestr)) for col, typestr in type_info)
-        con.exec_driver_sql(f"DROP VIEW IF EXISTS {name}")
+        cur = con.exec_driver_sql(f"SELECT * FROM {query} t0 LIMIT 0")
+        qry_cols = [
+            f"('{column.name}'::text, {column.type_code},"
+            + f"{column.table_oid if column.table_oid else 'NULL'}::int,"
+            + f"{column.table_column if column.table_column else 'NULL'}::int, {idx})"
+            for idx, column in enumerate(cur.cursor.description)
+        ]
+        type_info = con.exec_driver_sql(
+            f"""SELECT name, CASE WHEN t0.attrelid is NULL
+                                THEN format_type(t0.type_code, NULL)
+                                ELSE format_type(t1.atttypid, t1.atttypmod) END AS type
+                    FROM UNNEST(array[{','.join(qry_cols)}])
+                    AS t0(name text, type_code int, attrelid int, attnum int, col_ord int)
+                    LEFT JOIN pg_attribute t1 USING (attrelid, attnum) ORDER BY col_ord"""
+        )
+    yield from ((col, _get_type(typestr)) for col, typestr in type_info)
 
 
 def _get_type(typestr: str) -> dt.DataType:
@@ -109,9 +118,12 @@ def _get_type(typestr: str) -> dt.DataType:
     # passed to the _parse_numeric() function.
     # An alternative was to remove "numeric" from _type_mapping but that would be yet more monkey
     # patching, at least this function is already patched.
-    if typ is not None and typestr_wo_length != "numeric":
+    if typ and typestr_wo_length == "numeric":
+        return _parse_numeric(typestr)
+    elif typ:
         return dt.Array(typ) if is_array else typ
-    return _parse_numeric(typestr)
+    else:
+        return None  # Type is not known - will result in a NotImplemented Error
 
 
 def list_schemas(self, like=None):
