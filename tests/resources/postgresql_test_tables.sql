@@ -13,7 +13,7 @@
 -- limitations under the License.
 
 CREATE SCHEMA pso_data_validator;
-DROP TABLE IF EXISTS pso_data_validator.dvt_core_types;
+DROP TABLE IF EXISTS pso_data_validator.dvt_core_types CASCADE;
 CREATE TABLE pso_data_validator.dvt_core_types
 (   id              int NOT NULL PRIMARY KEY
 ,   col_int8        smallint
@@ -51,7 +51,7 @@ INSERT INTO pso_data_validator.dvt_core_types VALUES
  ,DATE'1970-01-03',TIMESTAMP'1970-01-03 00:00:03'
  ,TIMESTAMP WITH TIME ZONE'1970-01-03 00:00:03 -03:00');
 
-CREATE VIEW pso_data_validator.dvt_core_types_vw AS
+CREATE OR REPLACE VIEW pso_data_validator.dvt_core_types_vw AS
 SELECT * FROM pso_data_validator.dvt_core_types;
 
 DROP TABLE IF EXISTS pso_data_validator.dvt_ora2pg_types;
@@ -215,7 +215,7 @@ CREATE TABLE pso_data_validator.dvt_pg_types
 );
 COMMENT ON TABLE pso_data_validator.dvt_pg_types IS 'PostgreSQL data types integration test table';
 
-CREATE EXTENSION pgcrypto;
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
 INSERT INTO pso_data_validator.dvt_pg_types
 (col_int2,col_int4,col_int8,col_dec,col_dec_10_2
 --,col_money
@@ -311,7 +311,7 @@ INSERT INTO pso_data_validator.dvt_binary VALUES
 (CAST('DVT-key-4' AS bytea), 4, 'Row 4'),
 (CAST('DVT-key-5' AS bytea), 5, 'Row 5');
 
-DROP TABLE pso_data_validator.dvt_char_id;
+DROP TABLE IF EXISTS pso_data_validator.dvt_char_id;
 CREATE TABLE pso_data_validator.dvt_char_id
 (   id          char(6) NOT NULL PRIMARY KEY
 ,   other_data  varchar(100)
@@ -324,7 +324,7 @@ INSERT INTO pso_data_validator.dvt_char_id VALUES
 ('DVT4', 'Row 4'),
 ('DVT5', 'Row 5');
 
-DROP TABLE pso_data_validator.dvt_pangrams;
+DROP TABLE IF EXISTS pso_data_validator.dvt_pangrams;
 CREATE TABLE pso_data_validator.dvt_pangrams
 (   id          int
 ,   lang        varchar(100)
@@ -346,7 +346,7 @@ INSERT INTO pso_data_validator.dvt_pangrams VALUES
 (5,'Turkish', 'Pijamalı hasta yağız şoföre çabucak güvendi',
  'The sick person in pyjamas quickly trusted the swarthy driver');
 
-DROP TABLE pso_data_validator.dvt_many_cols;
+DROP TABLE IF EXISTS pso_data_validator.dvt_many_cols;
 CREATE TABLE pso_data_validator.dvt_many_cols
 ( id decimal(5)
 , col_001 varchar(2)
@@ -752,7 +752,7 @@ CREATE TABLE pso_data_validator.dvt_many_cols
 COMMENT ON TABLE pso_data_validator.dvt_many_cols IS 'Integration test table used to test validating many columns.';
 INSERT INTO pso_data_validator.dvt_many_cols (id) values (1);
 
-DROP TABLE pso_data_validator."dvt-identifier$_#";
+DROP TABLE IF EXISTS pso_data_validator."dvt-identifier$_#";
 CREATE TABLE pso_data_validator."dvt-identifier$_#"
 (   id            int NOT NULL PRIMARY KEY
 ,   "col#hash"    varchar(10)
@@ -768,7 +768,7 @@ INSERT INTO pso_data_validator."dvt-identifier$_#" VALUES (3,'#','$','-','@','Ro
 INSERT INTO pso_data_validator."dvt-identifier$_#" VALUES (4,'#','$','-','@','Row 4');
 INSERT INTO pso_data_validator."dvt-identifier$_#" VALUES (5,'#','$','-','@','Row 5');
 
-DROP TABLE pso_data_validator.dvt_bool;
+DROP TABLE IF EXISTS pso_data_validator.dvt_bool;
 CREATE TABLE pso_data_validator.dvt_bool
 (   id           int NOT NULL PRIMARY KEY
 ,   col_bool_dec boolean
@@ -779,7 +779,7 @@ COMMENT ON TABLE pso_data_validator.dvt_bool IS 'Integration test table used to 
 INSERT INTO pso_data_validator.dvt_bool VALUES (1,true,true,true,true);
 INSERT INTO pso_data_validator.dvt_bool VALUES (2,false,false,false,false);
 
-DROP TABLE pso_data_validator.dvt_uuid_id;
+DROP TABLE IF EXISTS pso_data_validator.dvt_uuid_id;
 CREATE TABLE pso_data_validator.dvt_uuid_id
 (   id        uuid NOT NULL PRIMARY KEY
 ,   col_uuid  uuid
@@ -789,7 +789,7 @@ INSERT INTO pso_data_validator.dvt_uuid_id VALUES
 (uuid('387bdc3b218443b28ec23ac791c5b0f1'),uuid('387bdc3b218443b28ec23ac791c5b0f1'),'A'),
 (uuid('397bdc3b218443b28ec23ac791c5b0f1'),uuid('397bdc3b218443b28ec23ac791c5b0f1'),'B');
 
-DROP TABLE pso_data_validator.dvt_group_by_timestamp;
+DROP TABLE IF EXISTS pso_data_validator.dvt_group_by_timestamp;
 CREATE TABLE pso_data_validator.dvt_group_by_timestamp
 (   id           int NOT NULL PRIMARY KEY
 ,   group_id     int

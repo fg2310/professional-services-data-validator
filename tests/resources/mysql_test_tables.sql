@@ -69,7 +69,7 @@ CREATE TABLE `pso_data_validator`.`dvt_core_types`
 ,   col_float64     double
 ,   col_varchar_30  varchar(30)
 ,   col_char_2      char(2)
-,   col_string      varchar(21000)
+,   col_string      text
 ,   col_date        date
 ,   col_datetime    datetime(3)
 ,   col_tstz        timestamp(3)
