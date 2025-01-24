@@ -115,6 +115,7 @@ def cloud_sql(request):
         )
 
 
+@pytest.mark.skip(reason="Requires Cloud SQL usage")
 def test_postgres_count(cloud_sql):
     """Test count validation on Postgres instance"""
     config_count_valid = {
@@ -159,6 +160,7 @@ def test_postgres_count(cloud_sql):
     assert sorted(list(df["source_agg_value"])) == ["28", "7", "7"]
 
 
+@pytest.mark.skip(reason="Requires Cloud SQL usage")
 def test_postgres_row(cloud_sql):
     """Test row validation on Postgres"""
     config_row_valid = {
@@ -541,6 +543,7 @@ def test_generate_partitions(cloud_sql, tmp_path: pathlib.Path):
     )
 
 
+@pytest.mark.skip(reason="Requires Cloud SQL usage")
 def test_schema_validation(cloud_sql):
     """Test schema validation on Postgres instance"""
     config_count_valid = {
