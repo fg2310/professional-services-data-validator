@@ -477,6 +477,7 @@ def test_numeric_types():
         )
 
 
+@pytest.mark.skip(reason="Requires GCS usage - bucket storing config files")
 def test_cli_store_yaml_then_run_gcs():
     """Test storing and retrieving validation YAMLs in GCS."""
     # Store BQ Connection
@@ -503,6 +504,7 @@ def test_cli_store_yaml_then_run_gcs():
     main.run_validations(run_config_args, config_managers)
 
 
+@pytest.mark.skip(reason="Requires GCS usage - bucket storing config files")
 def test_cli_store_yaml_then_run_local():
     """Test storing and retrieving validation YAML locally."""
     # Store BQ Connection
@@ -531,6 +533,7 @@ def test_cli_store_yaml_then_run_local():
     os.remove(yaml_file_path)
 
 
+@pytest.mark.skip(reason="Requires GCS usage - bucket storing config files")
 @mock.patch(
     "data_validation.state_manager.StateManager.get_connection_config",
     return_value=BQ_CONN,
@@ -585,6 +588,7 @@ def test_cli_store_yaml_then_run_directory_gcs(mock_conn):
     bucket.blob(yaml_file_name2).delete()
 
 
+@pytest.mark.skip(reason="Requires GCS usage - bucket storing config files")
 @mock.patch(
     "data_validation.state_manager.StateManager.get_connection_config",
     return_value=BQ_CONN,
@@ -668,6 +672,7 @@ def test_bq_datetime_sum_avg_bitxor_column_agg_yaml():
     )
 
 
+@pytest.mark.skip(reason="Requires GCS usage - bucket storing config files")
 def _test_cli_yaml_local_runner(cli_args, num_yaml_lines):
     """Test storing column validation YAML."""
     # Unset GCS env var so that YAML is saved locally
@@ -698,6 +703,7 @@ def test_timestamp_aggs():
         assert validation["source_agg_value"] == validation["target_agg_value"]
 
 
+@pytest.mark.skip(reason="Requires GCS usage - bucket storing config files")
 def test_cli_find_tables():
     _store_bq_conn()
 
@@ -743,6 +749,7 @@ def test_random_row_query_builder():
     ]
 
 
+@pytest.mark.skip(reason="Requires pso-kokoro BQ table")
 def test_bigquery_row():
     """Test BigQuery row-level validation config with various data types."""
     config_row_valid = {
@@ -1009,6 +1016,7 @@ def test_bigquery_row():
     assert df["source_agg_value"][0] == df["target_agg_value"][0]
 
 
+@pytest.mark.skip(reason="Requires GCS usage - bucket storing config files")
 def test_custom_query():
     """Test custom query validation config with row-level comparison."""
     SAMPLE_CUSTOMQUERY_CONFIG = {
@@ -1365,6 +1373,7 @@ def test_row_validation_identifiers(mock_conn):
     )
 
 
+@pytest.mark.skip(reason="Requires GCS usage - bucket storing config files")
 @mock.patch(
     "data_validation.state_manager.StateManager.get_connection_config",
     return_value=BQ_CONN,
