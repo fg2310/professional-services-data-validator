@@ -598,6 +598,64 @@ CREATE OR REPLACE TABLE `pso_data_validator`.`dvt_many_cols`
 ) OPTIONS (description='Integration test table used to test validating many columns.');
 INSERT INTO `pso_data_validator`.`dvt_many_cols` (id) VALUES (1);
 
+CREATE OR REPLACE TABLE `pso_data_validator`.`test_generate_partitions` ( 
+  course_id STRING
+, quarter_id INT64
+, student_id INT64
+, grade FLOAT64
+, registration_timestamp TIMESTAMP
+, registration_date DATE 
+) OPTIONS (description='Table for testing generate-table-partitions feature, consists of rows with a composite primary key');
+INSERT INTO `pso_data_validator`.`test_generate_partitions` VALUES
+('ALG001', 1, 5678, 3.5, NULL, NULL),
+('TRI001', 1, 5678, 3.5, NULL, NULL),
+('GEO001', 1, 5678, 3.5, NULL, NULL),
+('TRI001', 1, 9012, 2.3, NULL, NULL),
+('ALG001', 1, 9012, 2.3, NULL, NULL),
+('GEO001', 1, 9012, 2.3, NULL, NULL),
+('ALG001', 1, 1234, 2.1, NULL, NULL),
+('TRI001', 1, 1234, 2.1, NULL, NULL),
+('GEO001', 1, 1234, 2.1, NULL, NULL),
+('TRI001', 2, 1234, 3.5, NULL, NULL),
+('GEO001', 2, 9012, 3.5, NULL, NULL),
+('GEO001', 2, 1234, 3.5, NULL, NULL),
+('ALG001', 2, 9012, 3.5, NULL, NULL),
+('ALG001', 2, 1234, 3.5, NULL, NULL),
+('TRI001', 2, 9012, 3.5, NULL, NULL),
+('TRI001', 2, 5678, 2.6, NULL, NULL),
+('ALG001', 2, 5678, 2.6, NULL, NULL),
+('GEO001', 2, 5678, 2.6, NULL, NULL),
+('GEO001', 3, 5678, 3.5, NULL, NULL),
+('ALG001', 3, 5678, 3.5, NULL, NULL),
+('TRI001', 3, 5678, 3.5, NULL, NULL),
+('ALG001', 3, 9012, 2.8, NULL, NULL),
+('TRI001', 3, 9012, 2.8, NULL, NULL),
+('GEO001', 3, 9012, 2.8, NULL, NULL),
+('TRI001', 3, 1234, 2.7, NULL, NULL),
+('ALG001', 3, 1234, 2.7, NULL, NULL),
+('GEO001', 3, 1234, 2.7, NULL, NULL);
+
+CREATE OR REPLACE TABLE `pso_data_validator`.`test_generate_partitions_for_date_timestamp` ( 
+  col_timestamp TIMESTAMP
+, col_date DATE 
+);
+INSERT INTO `pso_data_validator`.`test_generate_partitions_for_date_timestamp` VALUES
+('2023-07-03 12:45:00.000000 UTC', '2023-07-03'),
+('2023-07-06 16:00:00.000000 UTC', '2023-07-06'),
+('2023-07-09 11:00:00.000000 UTC', '2023-07-09'),
+('2023-07-01 10:00:00.000000 UTC', '2023-07-01'),
+('2023-07-07 08:45:00.000000 UTC', '2023-07-07'),
+('2023-07-08 13:20:00.000000 UTC', '2023-07-08'),
+('2023-07-12 12:30:00.000000 UTC', '2023-07-12'),
+('2023-07-13 09:45:00.000000 UTC', '2023-07-13'),
+('2023-07-02 11:30:00.000000 UTC', '2023-07-02'),
+('2023-07-04 09:15:00.000000 UTC', '2023-07-04'),
+('2023-07-10 15:30:00.000000 UTC', '2023-07-10'),
+('2023-07-15 16:45:00.000000 UTC', '2023-07-15'),
+('2023-07-05 14:30:00.000000 UTC', '2023-07-05'),
+('2023-07-11 10:15:00.000000 UTC', '2023-07-11'),
+('2023-07-14 14:00:00.000000 UTC', '2023-07-14');
+
 -- Name should contain $ and # but this is not supported in BigQuery: `pso_data_validator`.`dvt-identifier$_#`;
 CREATE OR REPLACE TABLE `pso_data_validator`.`dvt-identifier___`
 (   id            INT64 NOT NULL
