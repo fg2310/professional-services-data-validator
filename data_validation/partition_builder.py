@@ -14,9 +14,9 @@
 
 import os
 import ibis
-import pandas
 import logging
 import re
+import pandas
 from typing import List, Dict
 from argparse import Namespace
 
@@ -153,16 +153,51 @@ class PartitionBuilder:
             )
             target_table = target_partition_row_builder.query
 
-            # Get Source and Target row Count
-            source_count = source_partition_row_builder.get_count()
-            target_count = target_partition_row_builder.get_count()
-
+            # Get Source and Target row Count - in Teradata - likely other databases, row count fails
+            # when a table has more than 2B rows, i.e. int32. We calculate row count
+            # as a sum of 1 cast as BigInt, i.e. 9x10^18 - max number of rows.
+            # We also want to ensure that the rows are unique with the primary keys provided.
+            source_win = ibis.window(order_by=source_pks, following=0)
+            target_win = ibis.window(order_by=target_pks, following=0)
+            source_ext = source_table.mutate(dvt_one=ibis.literal(1).cast("int64"))[
+                source_pks + ["dvt_one"]
+            ]
+            target_ext = target_table.mutate(dvt_one=ibis.literal(1).cast("int64"))[
+                target_pks + ["dvt_one"]
+            ]
+            source_ext_unq = source_ext.distinct()
+            target_ext_unq = target_ext.distinct()
+            source_row_num = source_ext.mutate(
+                source_ext.dvt_one.sum().over(source_win).name(consts.DVT_POS_COL)
+            )[source_pks + [consts.DVT_POS_COL]]
+            target_row_num = target_ext.mutate(
+                target_ext.dvt_one.sum().over(target_win).name(consts.DVT_POS_COL)
+            )[target_pks + [consts.DVT_POS_COL]]
+            source_unq_row_num = source_ext_unq.mutate(
+                source_ext_unq.dvt_one.sum().over(source_win).name(consts.DVT_POS_COL)
+            )[source_pks + [consts.DVT_POS_COL]]
+            target_unq_row_num = target_ext_unq.mutate(
+                target_ext_unq.dvt_one.sum().over(target_win).name(consts.DVT_POS_COL)
+            )[target_pks + [consts.DVT_POS_COL]]
+            source_count = source_row_num[consts.DVT_POS_COL].max().execute()
+            target_count = target_row_num[consts.DVT_POS_COL].max().execute()
+            source_unq_count = source_unq_row_num[consts.DVT_POS_COL].max().execute()
+            target_unq_count = target_unq_row_num[consts.DVT_POS_COL].max().execute()
+            
             # For some reason Teradata connector returns a dataframe with the count element,
-            # while the other connectors return a numpy.int64 value
+            # while the other connectors return a int64 value
             if isinstance(source_count, pandas.DataFrame):
                 source_count = source_count.values[0][0]
-            if isinstance(target_count, pandas.DataFrame):
                 target_count = target_count.values[0][0]
+                source_unq_count = source_unq_count.values[0][0]
+                target_unq_count = target_unq_count.values[0][0]
+            if source_count != source_unq_count or target_count != target_unq_count:
+                logging.warning(
+                    "Columns provided as primary keys do not uniquely identify the rows"
+                    f"Number of rows in source: {source_count}, Number of distinct rows in source: {source_unq_count}"
+                    f"Number of rows in target: {target_count}, Number of distinct rows in target: {target_unq_count}"
+                    "Validation likely to be incorrect and may error out"
+                )
 
             if abs(source_count - target_count) > source_count * 0.1:
                 logging.warning(
@@ -177,26 +212,18 @@ class PartitionBuilder:
                 else source_count
             )
 
-            # First we number each row in the source table. Using row_number instead of ntile since it is
-            # available on all platforms (Teradata does not support NTILE). For our purposes, it is likely
-            # more efficient
-            window1 = ibis.window(order_by=source_pks)
-            row_number = (ibis.row_number().over(window1) + 1).name(consts.DVT_POS_COL)
+            # if config_manager.trim_string_pks():
+            #     dvt_keys = []
+            #     for key in source_pks.copy():
+            #         if source_table[key].type().is_string():
+            #             rstrip_key = source_table[key].rstrip().name(key)
+            #             dvt_keys.append(rstrip_key)
+            #         else:
+            #             dvt_keys.append(key)
+            # else:
+            #     dvt_keys = source_pks.copy()
 
-            if config_manager.trim_string_pks():
-                dvt_keys = []
-                for key in source_pks.copy():
-                    if source_table[key].type().is_string():
-                        rstrip_key = source_table[key].rstrip().name(key)
-                        dvt_keys.append(rstrip_key)
-                    else:
-                        dvt_keys.append(key)
-            else:
-                dvt_keys = source_pks.copy()
-
-            dvt_keys.append(row_number)
-            rownum_table = source_table.select(dvt_keys)
-            # Rownum table is just the primary key columns in the source table along with
+            # source_row_num table is just the primary key columns in the source table along with
             # an additional column with the row number associated with each row.
 
             # This rather complicated expression below is a filter (where) clause condition that filters the row numbers
@@ -205,13 +232,13 @@ class PartitionBuilder:
             # the remainder, i.e. row number * # of partitions % total number of rows is > 0 and <= number of partitions.
             # The remainder function does not work well with Teradata, hence writing that out explicitly.
             cond = (
-                rownum_table
+                source_row_num
                 if source_count == number_of_part
                 else (
                     (
-                        rownum_table[consts.DVT_POS_COL] * number_of_part
+                        source_row_num[consts.DVT_POS_COL] * number_of_part
                         - (
-                            rownum_table[consts.DVT_POS_COL]
+                            source_row_num[consts.DVT_POS_COL]
                             * number_of_part
                             / source_count
                         ).floor()
@@ -221,9 +248,9 @@ class PartitionBuilder:
                 )
                 & (
                     (
-                        rownum_table[consts.DVT_POS_COL] * number_of_part
+                        source_row_num[consts.DVT_POS_COL] * number_of_part
                         - (
-                            rownum_table[consts.DVT_POS_COL]
+                            source_row_num[consts.DVT_POS_COL]
                             * number_of_part
                             / source_count
                         ).floor()
@@ -232,7 +259,7 @@ class PartitionBuilder:
                     > 0
                 )
             )
-            first_keys_table = rownum_table[cond].order_by(source_pks)
+            first_keys_table = source_row_num[cond].order_by(source_pks)
 
             # Up until this point, we have built the table expression, have not executed the query yet.
             # The query is now executed to find the first element of each partition
