@@ -29,6 +29,7 @@ from data_validation import (
     find_tables,
     gcs_helper,
 )
+from data_validation.partition_builder import NO_FILTERS_WARNING_TOKEN
 from data_validation.query_builder import random_row_builder
 from data_validation.query_builder.query_builder import QueryBuilder
 from data_validation.result_handlers.bigquery import BQRH_WRITE_MESSAGE
@@ -1166,6 +1167,17 @@ def test_generate_partitions(mock_conn, tmp_path: pathlib.Path):
     """Test generate partitions on BigQuery, first on table, then on custom query"""
     partition_table_test(EXPECTED_PARTITION_FILTER)
     partition_query_test(EXPECTED_PARTITION_FILTER, tmp_path)
+
+
+@mock.patch(
+    "data_validation.state_manager.StateManager.get_connection_config",
+    return_value=BQ_CONN,
+)
+def test_generate_partitions_num_1(mock_conn, tmp_path: pathlib.Path, caplog):
+    """Test generate partitions with -pn=1."""
+    caplog.set_level(logging.WARNING)
+    partition_table_test(None, partition_num=1)
+    assert any(_ for _ in caplog.records if NO_FILTERS_WARNING_TOKEN in _.msg)
 
 
 @mock.patch(

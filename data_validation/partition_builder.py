@@ -30,6 +30,11 @@ if TYPE_CHECKING:
     from argparse import Namespace
 
 
+NO_FILTERS_WARNING_TOKEN = (
+    "is too low to generate partitions, partition filters are not included."
+)
+
+
 class PartitionBuilder:
     def __init__(self, config_managers: List[ConfigManager], args: "Namespace") -> None:
         self.config_managers = config_managers
@@ -76,6 +81,20 @@ class PartitionBuilder:
             yaml_validations.append(config_manager.get_yaml_validation_block())
             config_manager.filters.pop()
 
+        yaml_config = {
+            consts.YAML_SOURCE: self.args.source_conn,
+            consts.YAML_TARGET: self.args.target_conn,
+            consts.YAML_RESULT_HANDLER: config_manager.result_handler_config,
+            consts.YAML_VALIDATIONS: yaml_validations,
+        }
+        return yaml_config
+
+    def _get_yaml_file_when_no_filters(
+        self,
+        config_manager: ConfigManager,
+    ) -> Dict:
+        """Equivalent of _add_filters_get_yaml_file() but for when we have no partition filters."""
+        yaml_validations = [config_manager.get_yaml_validation_block()]
         yaml_config = {
             consts.YAML_SOURCE: self.args.source_conn,
             consts.YAML_TARGET: self.args.target_conn,
@@ -167,18 +186,34 @@ class PartitionBuilder:
             if isinstance(target_count, pandas.DataFrame):
                 target_count = target_count.values[0][0]
 
-            if abs(source_count - target_count) > source_count * 0.1:
-                logging.warning(
-                    "Source and Target table row counts vary by more than 10%,"
-                    "partitioning may result in partitions with very different sizes"
-                )
-
             # Decide on number of partitions after checking number requested is not > number of rows in source
             number_of_part = (
                 self.args.partition_num
                 if self.args.partition_num < source_count
                 else source_count
             )
+
+            if number_of_part <= 1:
+                # 0 or 1 partitions does not make sense for generating partition configs.
+                # In these cases we can flag it and omit partition filters.
+                msg_action = (
+                    "Derived"
+                    if number_of_part != self.args.partition_num
+                    else "Requested"
+                )
+                logging.warning(
+                    f"{msg_action} partition number {number_of_part} for "
+                    f"{config_manager.source_schema}.{config_manager.source_table} {NO_FILTERS_WARNING_TOKEN}"
+                )
+                # Appending source and target filters of None which will be ignored later when processing filters.
+                master_filter_list.append(None)
+                continue
+
+            if abs(source_count - target_count) > source_count * 0.1:
+                logging.warning(
+                    "Source and Target table row counts vary by more than 10%,"
+                    "partitioning may result in partitions with very different sizes"
+                )
 
             # First we number each row in the source table. Using row_number instead of ntile since it is
             # available on all platforms (Teradata does not support NTILE). For our purposes, it is likely
@@ -391,23 +426,31 @@ class PartitionBuilder:
                 "yaml_files": [],
             }
 
-            # Create a list of lists chunked by partitions per file
-            # Both source and target table are divided into the same number of partitions, so we are
-            # guaranteed filter_list[0] (source) and filter_list[1] (target) are of the same length
-            source_filters_list = list_to_sublists(
-                filter_list[0], self.args.parts_per_file
-            )
-            target_filters_list = list_to_sublists(
-                filter_list[1], self.args.parts_per_file
-            )
-            for i in range(len(source_filters_list)):
-                # Build and append partition YAML
-                yaml_config = self._add_filters_get_yaml_file(
-                    config_manager, source_filters_list[i], target_filters_list[i]
+            if filter_list:
+                # Create a list of lists chunked by partitions per file
+                # Both source and target table are divided into the same number of partitions, so we are
+                # guaranteed filter_list[0] (source) and filter_list[1] (target) are of the same length
+                source_filters_list = list_to_sublists(
+                    filter_list[0], self.args.parts_per_file
                 )
+                target_filters_list = list_to_sublists(
+                    filter_list[1], self.args.parts_per_file
+                )
+                for i in range(len(source_filters_list)):
+                    # Build and append partition YAML
+                    yaml_config = self._add_filters_get_yaml_file(
+                        config_manager, source_filters_list[i], target_filters_list[i]
+                    )
+                    yaml_configs_list[ind]["yaml_files"].append(
+                        {"target_file_name": f"{i:04}.yaml", "yaml_config": yaml_config}
+                    )
+            else:
+                # There are no partition filters.
+                yaml_config = self._get_yaml_file_when_no_filters(config_manager)
                 yaml_configs_list[ind]["yaml_files"].append(
-                    {"target_file_name": f"{i:04}.yaml", "yaml_config": yaml_config}
+                    {"target_file_name": f"{0:04}.yaml", "yaml_config": yaml_config}
                 )
+
         return yaml_configs_list
 
     def _store_partitions(self, yaml_configs_list: List[Dict]) -> None:

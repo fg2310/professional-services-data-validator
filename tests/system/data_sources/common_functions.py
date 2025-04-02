@@ -440,11 +440,11 @@ def id_column_row_validation_test(
 
 def partition_table_test(
     expected_filter: str,
-    pk="course_id,quarter_id,student_id",
-    tables="pso_data_validator.test_generate_partitions",
-    filters="quarter_id != 1111",
-    partition_num=9,
-    parts_per_file=5,
+    pk: str = "course_id,quarter_id,student_id",
+    tables: str = "pso_data_validator.test_generate_partitions",
+    filters: str = "quarter_id != 1111",
+    partition_num: int = 9,
+    parts_per_file: int = 5,
 ):
     """Test generate table partitions for a database. Usually only the partition_filter is different
     because of the differences in SQL between the databases. Some databases have different table names,
@@ -473,9 +473,13 @@ def partition_table_test(
     partition_filters = partition_builder._get_partition_key_filters()
 
     assert len(partition_filters) == 1  # only one pair of tables
-    # Number of partitions is as requested - assume table rows > partitions requested
-    assert len(partition_filters[0][0]) == partition_builder.args.partition_num
-    assert partition_filters[0] == expected_filter
+    if expected_filter:
+        # Number of partitions is as requested - assume table rows > partitions requested
+        assert len(partition_filters[0][0]) == partition_builder.args.partition_num
+        assert partition_filters[0] == expected_filter
+
+    # Check that the filters can be combined with config managers without throwing an exception.
+    _ = partition_builder._add_partition_filters(partition_filters)
 
 
 def partition_query_test(
