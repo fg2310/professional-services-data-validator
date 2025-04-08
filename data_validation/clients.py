@@ -31,6 +31,7 @@ from third_party.ibis.ibis_cloud_spanner.api import spanner_connect
 from third_party.ibis.ibis_impala.api import impala_connect
 from third_party.ibis.ibis_mssql.api import mssql_connect
 from third_party.ibis.ibis_redshift.api import redshift_connect
+from third_party.ibis.ibis_spanner_postgres.api import spanner_postgres_connect
 
 if TYPE_CHECKING:
     import ibis.expr.schema as sch
@@ -54,6 +55,7 @@ IBIS_ALCHEMY_BACKENDS = [
     "mssql",
     "redshift",
     "snowflake",
+    "spanner_postgres",
 ]
 
 
@@ -182,6 +184,7 @@ def get_ibis_table(client, schema_name, table_name, database_name=None):
         "db2",
         "mssql",
         "redshift",
+        "spanner_postgres",
     ]:
         return client.table(table_name, database=database_name, schema=schema_name)
     elif client.name == "pandas":
@@ -380,5 +383,6 @@ CLIENT_LOOKUP = {
     consts.SOURCE_TYPE_MSSQL: mssql_connect,
     consts.SOURCE_TYPE_SNOWFLAKE: snowflake_connect,
     consts.SOURCE_TYPE_SPANNER: spanner_connect,
+    consts.SOURCE_TYPE_SPANNER_POSTGRES: spanner_postgres_connect,
     consts.SOURCE_TYPE_DB2: db2_connect,
 }

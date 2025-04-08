@@ -143,6 +143,16 @@ CONNECTION_SOURCE_FIELDS = {
             '(Optional) GCP Spanner API endpoint (e.g. "https://mycs.p.googleapis.com")',
         ],
     ],
+    consts.SOURCE_TYPE_SPANNER_POSTGRES: [
+        ["project_id", "GCP Project to use for Spanner"],
+        ["instance_id", "ID of Spanner instance to connect to"],
+        ["database_id", "ID of Spanner database (schema) to connect to"],
+        ["google_service_account_key_path", "(Optional) GCP SA Key Path"],
+        [
+            "api_endpoint",
+            '(Optional) GCP Spanner API endpoint (e.g. "https://mycs.p.googleapis.com")',
+        ],
+    ],
     consts.SOURCE_TYPE_FILESYSTEM: [
         ["table_name", "Table name to use as reference for file data"],
         ["file_path", "The local, s3, or GCS file path to the data"],

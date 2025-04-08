@@ -43,6 +43,13 @@ ORACLE_CONN_CONFIG = {
     "port": 1521,
 }
 
+SPANNER_POSTGRES_CONN_CONFIG = {
+    consts.SOURCE_TYPE: consts.SOURCE_TYPE_SPANNER_POSTGRES,
+    "project_id": "some-project",
+    "instance_id": "dvt-instance",
+    "database_id": "pso_data_validator",
+}
+
 
 def _create_table_file(table_path, data):
     """Write JSON data to given file."""
@@ -95,3 +102,8 @@ def test_get_pandas_data_client():
     ibis_client = clients.get_data_client(conn_config)
 
     assert isinstance(ibis_client, PandasBackend)
+
+
+def test_get_spanner_postgres_data_client():
+    conn_config = SPANNER_POSTGRES_CONN_CONFIG
+    _ = clients.get_data_client(conn_config)

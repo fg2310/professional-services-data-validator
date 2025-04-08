@@ -134,6 +134,7 @@ SOURCE_TYPE_POSTGRES = "Postgres"
 SOURCE_TYPE_REDSHIFT = "Redshift"
 SOURCE_TYPE_SNOWFLAKE = "Snowflake"
 SOURCE_TYPE_SPANNER = "Spanner"
+SOURCE_TYPE_SPANNER_POSTGRES = "SpannerPostgres"
 SOURCE_TYPE_TERADATA = "Teradata"
 
 # BigQuery Result Handler Configs
