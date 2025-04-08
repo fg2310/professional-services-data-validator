@@ -1,4 +1,4 @@
-# Copyright 2023 Google Inc.
+# Copyright 2025 Google Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,22 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from ibis.backends.base.sql.alchemy import (
-    AlchemyCompiler,
-    AlchemyExprTranslator,
-)
-from third_party.ibis.ibis_oracle.registry import operation_registry
+from ibis.backends.postgres.compiler import PostgreSQLCompiler, PostgreSQLExprTranslator
+
+from third_party.ibis.ibis_spanner_postgres.registry import operation_registry
 
 
-class OracleExprTranslator(AlchemyExprTranslator):
-    _registry = operation_registry.copy()
-    _rewrites = AlchemyExprTranslator._rewrites.copy()
-    _dialect_name = "oracle"
+class SpannerPostgresExprTranslator(PostgreSQLExprTranslator):
+    _registry = operation_registry
 
 
-rewrites = OracleExprTranslator.rewrites
-
-
-class OracleCompiler(AlchemyCompiler):
-    translator_class = OracleExprTranslator
-    supports_indexed_grouping_keys = False
+class SpannerPostgresCompiler(PostgreSQLCompiler):
+    translator_class = SpannerPostgresExprTranslator

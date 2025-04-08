@@ -17,11 +17,14 @@ from google.cloud import spanner
 
 from ibis.backends.postgres import Backend as PostgresBackend
 import sqlalchemy as sa
-from sqlalchemy.dialects import registry  # noqa
+from sqlalchemy.dialects import registry as sa_registry
 
 from third_party.ibis.ibis_cloud_spanner import parse_instance_and_dataset
 
-registry.register(
+from third_party.ibis.ibis_spanner_postgres.compiler import SpannerPostgresCompiler
+
+
+sa_registry.register(
     "spanner_postgres.psycopg2",
     "third_party.ibis.ibis_spanner_postgres.dialect",
     "SpannerPostgresDialect_psycopg2",
@@ -30,6 +33,7 @@ registry.register(
 
 class Backend(PostgresBackend):
     name = "spanner_postgres"
+    compiler = SpannerPostgresCompiler
 
     def do_connect(
         self,
@@ -42,7 +46,6 @@ class Backend(PostgresBackend):
         port: int = 5432,
         url: str | None = None,
     ) -> None:
-
         alchemy_url = self._build_alchemy_url(
             url=url,
             host=host,

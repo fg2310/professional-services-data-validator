@@ -32,6 +32,9 @@ class SpannerPostgresDialectMixin(DefaultDialect):
         type_str = PG_TYPE_MAP[pg_type_str]
         if pg_type_mod != -1:
             type_str = f"{type_str}({pg_type_mod})"
+        elif type_str == "numeric":
+            # We cannot specify precision/scale when creating a table in Spanner, even in PostgreSQL dialect.
+            type_str = f"{type_str}(38,9)"
         return type_str
 
     @reflection.cache
@@ -50,14 +53,11 @@ class SpannerPostgresDialectMixin(DefaultDialect):
             AND a.attnum > 0 AND NOT a.attisdropped
             ORDER BY a.attnum
         """
-        # s = sql.text(f"SELECT * FROM {table_oid} t0 LIMIT 0")
-        # c = connection.execute(s)
         s = sql.text(SQL_COLS).bindparams(
             sql.bindparam("table_oid", type_=sqltypes.Integer)
         )
         c = connection.execute(s, dict(table_oid=table_oid))
         rows = c.fetchall()
-        breakpoint()
         columns = []
         for name, pg_type_str, pg_type_mod, notnull in rows:
             column_info = self._get_column_info(
