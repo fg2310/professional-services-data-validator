@@ -561,6 +561,7 @@ EXPECTED_PARTITION_FILTER = [
 ]
 
 
+@pytest.mark.skip(reason="Requires Cloud SQL usage")
 @mock.patch(
     "data_validation.state_manager.StateManager.get_connection_config",
     new=mock_get_connection_config,

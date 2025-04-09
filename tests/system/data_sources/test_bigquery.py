@@ -1427,6 +1427,7 @@ def test_row_validation_comp_fields_reserved_words(mock_conn):
     )
 
 
+@pytest.mark.skip(reason="Requires GCS usage - bucket storing config files")
 @mock.patch(
     "data_validation.state_manager.StateManager.get_connection_config",
     return_value=BQ_CONN,

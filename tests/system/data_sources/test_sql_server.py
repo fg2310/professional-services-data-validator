@@ -91,6 +91,7 @@ def cloud_sql(request):
         mssql_instance.add_data("gs://pso-kokoro-resources/mssql_data.sql")
 
 
+@pytest.mark.skip(reason="Requires Cloud SQL usage")
 def test_sql_server_count(cloud_sql):
     """Test count validation on SQL Server instance"""
     config_count_valid = {
@@ -122,6 +123,7 @@ def test_sql_server_count(cloud_sql):
     assert df["source_agg_value"][0] == df[consts.TARGET_AGG_VALUE][0]
 
 
+@pytest.mark.skip(reason="Requires Cloud SQL usage")
 def test_sql_server_row(cloud_sql):
     """Test row validation on SQL Server instance"""
     config_row_valid = {
@@ -199,7 +201,7 @@ def test_sql_server_row(cloud_sql):
     assert df["source_agg_value"][0] == df[consts.TARGET_AGG_VALUE][0]
     assert df.shape[0] == 5
 
-
+@pytest.mark.skip(reason="Random single table, not created in setup.")
 def test_schema_validation():
     config = {
         consts.CONFIG_SOURCE_CONN: CONN,
@@ -252,6 +254,7 @@ EXPECTED_PARTITION_FILTER = [
 ]
 
 
+@pytest.mark.skip(reason="Requires Cloud SQL usage")
 @mock.patch(
     "data_validation.state_manager.StateManager.get_connection_config",
     new=mock_get_connection_config,
