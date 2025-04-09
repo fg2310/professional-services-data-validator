@@ -11,16 +11,19 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+from typing import Iterable, Tuple
+
 import pandas
 import warnings
 
-import json
 import teradatasql
 import ibis.expr.datatypes as dt
 import ibis.expr.types as ir
 from typing import Mapping, Any
 import ibis.expr.schema as sch
 from ibis.backends.base.sql import BaseSQLBackend
+
 from third_party.ibis.ibis_teradata.compiler import TeradataCompiler
 from third_party.ibis.ibis_teradata.datatypes import (
     TeradataTypeTranslator,
@@ -41,7 +44,7 @@ class Backend(BaseSQLBackend):
         port: int = 1025,
         logmech: str = "TD2",
         use_no_lock_tables: str = "False",
-        json_params: str = None,
+        json_params: Mapping[str, Any] = None,
     ) -> None:
         self.teradata_config = {
             "host": host,
@@ -50,15 +53,8 @@ class Backend(BaseSQLBackend):
             "dbs_port": port,
             "logmech": logmech,
         }
-
         if json_params:
-            try:
-                param_dict = json.loads(json_params.replace("'", '"'))
-                self.teradata_config.update(param_dict)
-            except json.JSONDecodeError:
-                print(
-                    f"Invalid JSON format in the parameter dictionary string: {json_params}"
-                )
+            self.teradata_config.update(json_params)
 
         self.client = teradatasql.connect(**self.teradata_config)
         self.con = self.client.cursor()
@@ -278,6 +274,33 @@ class Backend(BaseSQLBackend):
             list_pk_col_sql, results=True, params=(database, table)
         )
         return list(tables_df.ColumnName.str.rstrip())
+
+    def raw_column_metadata(
+        self, database: str = None, table: str = None, query: str = None
+    ) -> Iterable[Tuple]:
+        """Partner method to _get_schema_using_query that retains raw data type information instead of converting
+        to Ibis types.  This works in the same way as _get_schema_using_query by running a query over the DVT
+        source, either schema.table or a custom query, and fetching the first row. From the cursor we can detect
+        data types of the row's columns.
+
+        Returns:
+            list: A list of tuples containing the standard 7 DB API fields:
+                  https://peps.python.org/pep-0249/#description
+        """
+
+        assert (database and table) or query, "We should never receive all args=None"
+        if database and table:
+            source = f'"{database}"."{table}"'.upper()
+        elif query:
+            source = f"({query})"
+
+        cur = self.raw_sql(f"SELECT TOP 1 * FROM {source} t0")
+        # resets the state of the cursor and closes operation
+        cur.fetchall()
+        yield from (
+            (column[0], raw_type, *column[2:])
+            for column, raw_type in zip(cur.description, cur.columntypename)
+        )
 
     # Methods we need to implement for BaseSQLBackend
     def create_table(self):

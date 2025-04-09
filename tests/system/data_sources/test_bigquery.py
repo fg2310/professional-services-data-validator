@@ -47,7 +47,7 @@ from tests.system.result_handlers.test_bigquery import create_bigquery_results_t
 
 PROJECT_ID = os.environ["PROJECT_ID"]
 os.environ[consts.ENV_DIRECTORY_VAR] = f"gs://{PROJECT_ID}/integration_tests/"
-BQ_CONN = {"source_type": "BigQuery", "project_id": PROJECT_ID}
+BQ_CONN = {consts.SOURCE_TYPE: consts.SOURCE_TYPE_BIGQUERY, "project_id": PROJECT_ID}
 CONFIG_COUNT_VALID = {
     # BigQuery Specific Connection Name
     consts.CONFIG_SOURCE_CONN: BQ_CONN,
@@ -96,7 +96,7 @@ CONFIG_COUNT_VALID = {
             consts.CONFIG_FIELD_ALIAS: "std_tripduration",
         },
     ],
-    consts.CONFIG_FORMAT: "table",
+    consts.CONFIG_FORMAT: consts.FORMAT_TYPE_TABLE,
     consts.CONFIG_FILTER_STATUS: None,
 }
 
@@ -131,7 +131,7 @@ CONFIG_GROUPED_COUNT_VALID = {
             consts.CONFIG_CAST: "date",
         },
     ],
-    consts.CONFIG_FORMAT: "table",
+    consts.CONFIG_FORMAT: consts.FORMAT_TYPE_TABLE,
     consts.CONFIG_FILTER_STATUS: None,
 }
 
@@ -145,7 +145,7 @@ CONFIG_TIMESTAMP_AGGS = {
     consts.CONFIG_TARGET_TABLE_NAME: "bikeshare_trips",
     consts.CONFIG_LABELS: [],
     consts.CONFIG_THRESHOLD: 0.0,
-    consts.CONFIG_FORMAT: "table",
+    consts.CONFIG_FORMAT: consts.FORMAT_TYPE_TABLE,
     consts.CONFIG_FILTER_STATUS: None,
     consts.CONFIG_RESULT_HANDLER: None,
     consts.CONFIG_FILTERS: [],
@@ -240,7 +240,7 @@ CONFIG_NUMERIC_AGG_VALID = {
         },
     ],
     consts.CONFIG_GROUPED_COLUMNS: [],
-    consts.CONFIG_FORMAT: "table",
+    consts.CONFIG_FORMAT: consts.FORMAT_TYPE_TABLE,
     consts.CONFIG_FILTER_STATUS: None,
 }
 
@@ -302,7 +302,7 @@ CLI_WILDCARD_COLUMN_ARGS = [
     "--config-file",
     CLI_CONFIG_FILE,
 ]
-EXPECTED_NUM_YAML_LINES_WILDCARD = 156
+EXPECTED_NUM_YAML_LINES_WILDCARD = 163
 
 CLI_TIMESTAMP_MIN_MAX_ARGS = [
     "validate",
@@ -340,7 +340,7 @@ CLI_TIMESTAMP_SUM_AVG_BITXOR_ARGS = [
     "--config-file",
     CLI_CONFIG_FILE,
 ]
-EXPECTED_NUM_YAML_LINES_TIMESTAMP_SUM_AVG_BITXOR = 54
+EXPECTED_NUM_YAML_LINES_TIMESTAMP_SUM_AVG_BITXOR = 55
 
 CLI_BQ_DATETIME_SUM_AVG_BITXOR_ARGS = [
     "validate",
@@ -360,7 +360,7 @@ CLI_BQ_DATETIME_SUM_AVG_BITXOR_ARGS = [
     "--config-file",
     CLI_CONFIG_FILE,
 ]
-EXPECTED_NUM_YAML_LINES_BQ_DATETIME_SUM_AVG_BITXOR = 54
+EXPECTED_NUM_YAML_LINES_BQ_DATETIME_SUM_AVG_BITXOR = 55
 
 CLI_FIND_TABLES_ARGS = [
     "find-tables",
@@ -394,7 +394,7 @@ TEST_JSON_VALIDATION_CONFIG = {
     consts.CONFIG_TARGET_TABLE_NAME: "dvt_core_types",
     consts.CONFIG_LABELS: [],
     consts.CONFIG_THRESHOLD: 0.0,
-    consts.CONFIG_FORMAT: "table",
+    consts.CONFIG_FORMAT: consts.FORMAT_TYPE_TABLE,
     consts.CONFIG_RESULT_HANDLER: None,
     consts.CONFIG_RUN_ID: None,
     consts.CONFIG_FILTERS: [],
@@ -422,20 +422,22 @@ def test_count_validator():
     validator = data_validation.DataValidation(CONFIG_COUNT_VALID, verbose=True)
     df = validator.execute()
 
-    count_value = df[df["validation_name"] == "count"]["source_agg_value"].values[0]
-    count_tripduration_value = df[df["validation_name"] == "count_tripduration"][
+    count_value = df[df[consts.VALIDATION_NAME] == "count"]["source_agg_value"].values[
+        0
+    ]
+    count_tripduration_value = df[df[consts.VALIDATION_NAME] == "count_tripduration"][
         "source_agg_value"
     ].values[0]
-    avg_tripduration_value = df[df["validation_name"] == "avg_tripduration"][
+    avg_tripduration_value = df[df[consts.VALIDATION_NAME] == "avg_tripduration"][
         "source_agg_value"
     ].values[0]
-    max_birth_year_value = df[df["validation_name"] == "max_birth_year"][
+    max_birth_year_value = df[df[consts.VALIDATION_NAME] == "max_birth_year"][
         "source_agg_value"
     ].values[0]
-    min_birth_year_value = df[df["validation_name"] == "min_birth_year"][
+    min_birth_year_value = df[df[consts.VALIDATION_NAME] == "min_birth_year"][
         "source_agg_value"
     ].values[0]
-    std_tripduration_value = df[df["validation_name"] == "std_tripduration"][
+    std_tripduration_value = df[df[consts.VALIDATION_NAME] == "std_tripduration"][
         "source_agg_value"
     ].values[0]
 
@@ -446,25 +448,25 @@ def test_count_validator():
     assert float(min_birth_year_value) > 0
     assert float(std_tripduration_value) > 0
     assert (
-        df["source_agg_value"].astype(float).sum()
-        == df["target_agg_value"].astype(float).sum()
+        df[consts.SOURCE_AGG_VALUE].astype(float).sum()
+        == df[consts.TARGET_AGG_VALUE].astype(float).sum()
     )
 
 
 def test_grouped_count_validator():
     validator = data_validation.DataValidation(CONFIG_GROUPED_COUNT_VALID, verbose=True)
     df = validator.execute()
-    rows = list(df[df["validation_name"] == "count"].iterrows())
+    rows = list(df[df[consts.VALIDATION_NAME] == "count"].iterrows())
 
     # Check that all partitions are unique.
-    partitions = frozenset(df["group_by_columns"])
+    partitions = frozenset(df[consts.GROUP_BY_COLUMNS])
     assert len(rows) == len(partitions)
     assert len(rows) > 1
-    assert df["source_agg_value"].sum() == df["target_agg_value"].sum()
+    assert df[consts.SOURCE_AGG_VALUE].sum() == df[consts.TARGET_AGG_VALUE].sum()
 
     for _, row in rows:
-        assert float(row["source_agg_value"]) > 0
-        assert row["source_agg_value"] == row["target_agg_value"]
+        assert float(row[consts.SOURCE_AGG_VALUE]) > 0
+        assert row[consts.SOURCE_AGG_VALUE] == row[consts.TARGET_AGG_VALUE]
 
 
 def test_numeric_types():
@@ -473,7 +475,7 @@ def test_numeric_types():
 
     for validation in df.to_dict(orient="records"):
         assert float(validation["source_agg_value"]) == float(
-            validation["target_agg_value"]
+            validation[consts.TARGET_AGG_VALUE]
         )
 
 
@@ -700,7 +702,7 @@ def test_timestamp_aggs():
     validator = data_validation.DataValidation(CONFIG_TIMESTAMP_AGGS)
     df = validator.execute()
     for validation in df.to_dict(orient="records"):
-        assert validation["source_agg_value"] == validation["target_agg_value"]
+        assert validation["source_agg_value"] == validation[consts.TARGET_AGG_VALUE]
 
 
 @pytest.mark.skip(reason="Requires GCS usage - bucket storing config files")
@@ -1004,7 +1006,7 @@ def test_bigquery_row():
                 "cast": None,
             }
         ],
-        consts.CONFIG_FORMAT: "table",
+        consts.CONFIG_FORMAT: consts.FORMAT_TYPE_TABLE,
     }
 
     data_validator = data_validation.DataValidation(
@@ -1013,7 +1015,7 @@ def test_bigquery_row():
     )
     df = data_validator.execute()
 
-    assert df["source_agg_value"][0] == df["target_agg_value"][0]
+    assert df["source_agg_value"][0] == df[consts.TARGET_AGG_VALUE][0]
 
 
 @pytest.mark.skip(reason="Requires GCS usage - bucket storing config files")
@@ -1029,7 +1031,7 @@ def test_custom_query():
         "target_table_name": None,
         "labels": [],
         "threshold": 0.0,
-        "format": "table",
+        "format": consts.FORMAT_TYPE_TABLE,
         "result_handler": None,
         "filters": [],
         "use_random_rows": False,
@@ -1378,6 +1380,57 @@ def test_row_validation_identifiers(mock_conn):
     "data_validation.state_manager.StateManager.get_connection_config",
     return_value=BQ_CONN,
 )
+def test_schema_validation_reserved_words(mock_conn):
+    """Test schema validation on a table with reserved words in column names."""
+    schema_validation_test(
+        tables="pso_data_validator.dvt_reserved_word_columns",
+        tc="mock-conn",
+    )
+
+
+@mock.patch(
+    "data_validation.state_manager.StateManager.get_connection_config",
+    return_value=BQ_CONN,
+)
+def test_column_validation_reserved_words(mock_conn):
+    """Test column validation on a table with reserved words in column names."""
+    column_validation_test(
+        tc="mock-conn",
+        tables="pso_data_validator.dvt_reserved_word_columns",
+        count_cols="*",
+    )
+
+
+@mock.patch(
+    "data_validation.state_manager.StateManager.get_connection_config",
+    return_value=BQ_CONN,
+)
+def test_row_validation_reserved_words(mock_conn):
+    """Test row validation on a table with reserved words in column names."""
+    row_validation_test(
+        tables="pso_data_validator.dvt_reserved_word_columns",
+        tc="mock-conn",
+        hash="*",
+    )
+
+
+@mock.patch(
+    "data_validation.state_manager.StateManager.get_connection_config",
+    return_value=BQ_CONN,
+)
+def test_row_validation_comp_fields_reserved_words(mock_conn):
+    """Test row validation on a table with reserved words in column names."""
+    row_validation_test(
+        tables="pso_data_validator.dvt_reserved_word_columns",
+        tc="mock-conn",
+        comp_fields="*",
+    )
+
+
+@mock.patch(
+    "data_validation.state_manager.StateManager.get_connection_config",
+    return_value=BQ_CONN,
+)
 def test_bq_result_handler(mock_conn, bigquery_client, bigquery_dataset_id, caplog):
     """Test BigQuery result handler using dvt_core_types schema validation."""
     table_id = f"{bigquery_dataset_id}.test_bq_result_handler"
@@ -1387,7 +1440,7 @@ def test_bq_result_handler(mock_conn, bigquery_client, bigquery_dataset_id, capl
         tables="pso_data_validator.dvt_core_types",
         tc="mock-conn",
         filter_status=None,
-        bq_result_handler=f"{PROJECT_ID}.{table_id}",
+        result_handler=f"{PROJECT_ID}.{table_id}",
     )
     assert any(_ for _ in caplog.records if BQRH_WRITE_MESSAGE in _.msg)
 

@@ -2,6 +2,87 @@
 
 ## Untagged
 
+## [7.5.2](https://github.com/GoogleCloudPlatform/professional-services-data-validator/compare/v7.5.1...v7.5.2) (2025-04-02)
+
+
+### Bug Fixes
+
+* Cater for OID &gt; 2 billion in PostgreSQL _metadata method ([#1490](https://github.com/GoogleCloudPlatform/professional-services-data-validator/issues/1490)) ([d5f72ae](https://github.com/GoogleCloudPlatform/professional-services-data-validator/commit/d5f72ae3729316dc9fc544abb7a68f25e3667647))
+* NaT handling in string_to_epoch now matches datetime64 cast output ([#1488](https://github.com/GoogleCloudPlatform/professional-services-data-validator/issues/1488)) ([43f6e0a](https://github.com/GoogleCloudPlatform/professional-services-data-validator/commit/43f6e0abf5f5af2c52ac8808ff808091d0607589))
+
+## [7.5.1](https://github.com/GoogleCloudPlatform/professional-services-data-validator/compare/v7.5.0...v7.5.1) (2025-03-31)
+
+
+### Bug Fixes
+
+* Reduced VARCHAR length when casting Teradata integrals to string ([#1481](https://github.com/GoogleCloudPlatform/professional-services-data-validator/issues/1481)) ([726a137](https://github.com/GoogleCloudPlatform/professional-services-data-validator/commit/726a137846953ef556e09bd5aec7dbc5959d4dc7))
+
+## [7.5.0](https://github.com/GoogleCloudPlatform/professional-services-data-validator/compare/v7.4.0...v7.5.0) (2025-03-25)
+
+
+### Features
+
+* Add raw_column_metadata to Oracle, Teradata and PostgreSQL Backend objects ([#1469](https://github.com/GoogleCloudPlatform/professional-services-data-validator/issues/1469)) ([0a96ef9](https://github.com/GoogleCloudPlatform/professional-services-data-validator/commit/0a96ef94e4737ef03284ae1949a2f8393d3a66ae))
+* Enhanced row validation summary logging (support for custom-query row, change to JSON compliant log output) ([#1463](https://github.com/GoogleCloudPlatform/professional-services-data-validator/issues/1463)) ([66cff07](https://github.com/GoogleCloudPlatform/professional-services-data-validator/commit/66cff07d51f607452f56b19c888ad6a749a31de4))
+
+
+### Bug Fixes
+
+* Cater for extreme datetime pk values ([#1475](https://github.com/GoogleCloudPlatform/professional-services-data-validator/issues/1475)) ([450f2db](https://github.com/GoogleCloudPlatform/professional-services-data-validator/commit/450f2dbdd847249f40eb119510f669c884a035a9))
+* Prevent logging an exception when result_df is empty ([#1461](https://github.com/GoogleCloudPlatform/professional-services-data-validator/issues/1461)) ([e85ba40](https://github.com/GoogleCloudPlatform/professional-services-data-validator/commit/e85ba40fcbc021e41e3644e2d16726f633a3aa72))
+* Prevent RecursionError in combiner by slicing Dataframes by validation count ([#1465](https://github.com/GoogleCloudPlatform/professional-services-data-validator/issues/1465)) ([b76f33e](https://github.com/GoogleCloudPlatform/professional-services-data-validator/commit/b76f33ec79042296a131c888ed426be4d87b1a64))
+
+## [7.4.0](https://github.com/GoogleCloudPlatform/professional-services-data-validator/compare/v7.3.0...v7.4.0) (2025-03-04)
+
+
+### Features
+
+* Add --format option to raw query command ([#1450](https://github.com/GoogleCloudPlatform/professional-services-data-validator/issues/1450)) ([241f018](https://github.com/GoogleCloudPlatform/professional-services-data-validator/commit/241f018cbccbbe847fbfa1ab5a5397ea59df3121))
+
+
+### Bug Fixes
+
+* Include Int64 in data types to cast to string during sum column validation ([#1452](https://github.com/GoogleCloudPlatform/professional-services-data-validator/issues/1452)) ([98439ff](https://github.com/GoogleCloudPlatform/professional-services-data-validator/commit/98439ff515984a9b274bb2a856222adb8f809b51))
+* PostgreSQL epoch_seconds expression now matches Oracle/BigQuery/SQL Server/etc ([#1458](https://github.com/GoogleCloudPlatform/professional-services-data-validator/issues/1458)) ([bf7cb64](https://github.com/GoogleCloudPlatform/professional-services-data-validator/commit/bf7cb64a1a114a1fa8d5cf65dbd4f8f4b63955e5))
+
+## [7.3.0](https://github.com/GoogleCloudPlatform/professional-services-data-validator/compare/v7.2.0...v7.3.0) (2025-02-19)
+
+
+### Features
+
+* Print summary information after row validation ([#1417](https://github.com/GoogleCloudPlatform/professional-services-data-validator/issues/1417)) ([edb0b4b](https://github.com/GoogleCloudPlatform/professional-services-data-validator/commit/edb0b4b71e845e1972638714be44069b9415862d))
+
+
+### Bug Fixes
+
+* Add PermissionDenied to ignorable exceptions in maybe_secret() ([#1441](https://github.com/GoogleCloudPlatform/professional-services-data-validator/issues/1441)) ([c5883e6](https://github.com/GoogleCloudPlatform/professional-services-data-validator/commit/c5883e60afa53d2c3aee37393b6af7aa40df6aca))
+* Convert Snowflake connect_args to a dict before passing to Ibis ([#1431](https://github.com/GoogleCloudPlatform/professional-services-data-validator/issues/1431)) ([38858f7](https://github.com/GoogleCloudPlatform/professional-services-data-validator/commit/38858f73e9c431722dc3c5efad5c137b48b14184))
+* Prevent exception for COLUMN keyword in Oracle ([#1437](https://github.com/GoogleCloudPlatform/professional-services-data-validator/issues/1437)) ([55e14c4](https://github.com/GoogleCloudPlatform/professional-services-data-validator/commit/55e14c41a5dd8f41cb974c44715c224eb6012be8))
+
+## [7.2.0](https://github.com/GoogleCloudPlatform/professional-services-data-validator/compare/v7.1.0...v7.2.0) (2025-02-04)
+
+
+### Features
+
+* add connections cli commands ([#1398](https://github.com/GoogleCloudPlatform/professional-services-data-validator/issues/1398)) ([949d6c5](https://github.com/GoogleCloudPlatform/professional-services-data-validator/commit/949d6c57d9c6df376be7c539aa209b7c16252804))
+* Add margin to Decimal precision when deciding to SUM output to string ([#1395](https://github.com/GoogleCloudPlatform/professional-services-data-validator/issues/1395)) ([f231b3d](https://github.com/GoogleCloudPlatform/professional-services-data-validator/commit/f231b3d1ea174a3c33dcc493be2950b36dcfa759))
+* Cater for ExtractEpochSeconds overflowing integer ([#1397](https://github.com/GoogleCloudPlatform/professional-services-data-validator/issues/1397)) ([c175146](https://github.com/GoogleCloudPlatform/professional-services-data-validator/commit/c1751462effee9d7e5bf8a8a5098770ce96cb1f3))
+
+
+### Bug Fixes
+
+* Cast epoch_seconds to int64 in combiner ([#1407](https://github.com/GoogleCloudPlatform/professional-services-data-validator/issues/1407)) ([e76a123](https://github.com/GoogleCloudPlatform/professional-services-data-validator/commit/e76a123f53275285fd004fcefc11efad0bd64e05))
+* Cast sum of epoch_seconds to string to avoid int64 overflow ([#1412](https://github.com/GoogleCloudPlatform/professional-services-data-validator/issues/1412)) ([7814906](https://github.com/GoogleCloudPlatform/professional-services-data-validator/commit/781490658875f6dab128f11c1a1af325561788fc))
+* Change get_filters to not hang due to long filter strings ([#1418](https://github.com/GoogleCloudPlatform/professional-services-data-validator/issues/1418)) ([a752cf5](https://github.com/GoogleCloudPlatform/professional-services-data-validator/commit/a752cf5ac0b0c8bf330b0470d3c818b4942b1232))
+* Row validations fail for values with trailing newline ([#1415](https://github.com/GoogleCloudPlatform/professional-services-data-validator/issues/1415)) ([a169f63](https://github.com/GoogleCloudPlatform/professional-services-data-validator/commit/a169f635855f736b291a9163429d4c10743c6e12))
+* Workaround for dates &lt; 1970 on Windows ([#1392](https://github.com/GoogleCloudPlatform/professional-services-data-validator/issues/1392)) ([4ff5d3a](https://github.com/GoogleCloudPlatform/professional-services-data-validator/commit/4ff5d3a359f824d91e2c26dc1f88a22cdeeb9103))
+
+
+### Documentation
+
+* Add sample of horizontally scaled Oracle BLOB validation ([#1404](https://github.com/GoogleCloudPlatform/professional-services-data-validator/issues/1404)) ([de6dad0](https://github.com/GoogleCloudPlatform/professional-services-data-validator/commit/de6dad02407c093c107a0bcedee7b6900e91e86e))
+* Add Snowflake key-pair example ([#1402](https://github.com/GoogleCloudPlatform/professional-services-data-validator/issues/1402)) ([94f8e03](https://github.com/GoogleCloudPlatform/professional-services-data-validator/commit/94f8e0324d11e51a6483cb6d446acd939340e664))
+
 ## [7.1.0](https://github.com/GoogleCloudPlatform/professional-services-data-validator/compare/v7.0.0...v7.1.0) (2025-01-08)
 
 

@@ -22,32 +22,123 @@ import datetime
 import functools
 import json
 import logging
+from typing import TYPE_CHECKING
+
 import ibis
 import ibis.expr.datatypes as dt
+import pandas
 
 from data_validation import consts
 
-DEFAULT_SOURCE = "source"
-DEFAULT_TARGET = "target"
+if TYPE_CHECKING:
+    from pandas import DataFrame
+    import ibis.expr.types.relations.table as IbisTable
+    from data_validation.metadata import RunMetadata, ValidationMetadata
+
+
+# At around 140 columns we hit RecursionError when unioning Ibis subqueries.
+# This constant is a threshold at which we slice up the input Dataframes
+# and stitch them back together again after Ibis processing.
+COMBINER_COLUMN_SLICE_WIDTH = 120
+
+COMBINER_GET_SUMMARY_EXC_TEXT = (
+    "Error while generating summary report of row validation results"
+)
 
 
 def generate_report(
-    client,
-    run_metadata,
-    source,
-    target,
+    run_metadata: "RunMetadata",
+    source_df: "DataFrame",
+    target_df: "DataFrame",
     join_on_fields=(),
     is_value_comparison=False,
     verbose=False,
-):
+) -> "DataFrame":
+    """Combine results into a report.
+
+    This function is a wrapper around _generate_report_slice(). _generate_report_slice() does the main work, this
+    wrapper simply manages the input columns and stitches the results back together.
+    This is because validations of > 140(ish) columns trigger a RecursionError when unioning Ibis subqueries.
+    In this method we pass in column slices of the incoming Dataframes and combine the results.
+
+    It is a bit of a hack but I cannot find a way to optimize the Ibis processing. It appears to be
+    inefficient in that we create a subquery for each validation (column) in _calculate_differences() and
+    then union them all. We then do the same on the source/target table expressions to join it all back
+    together again. I (nj1973) spent a singificant amount of time trying to understand/optimize the Ibis
+    processing but fell back on this simpler (less risky) workaround.
+
+    Returns:
+        pandas.DataFrame:
+            A pandas DataFrame with the results of the validation in the same
+            schema as the report table.
+    """
+    _check_schema_names(source_df, target_df)
+
+    join_on_fields = tuple(join_on_fields)
+
+    validation_columns = run_metadata.validations.keys()
+    # slice_thresholds is a list of points at which we should break up the Dataframe by column.
+    # e.g. [10, 20, 30] would mean process columns 0-9, 10-19 and 20-the max column.
+    # 1. len(...) / COMBINER_COLUMN_SLICE_WIDTH: Divides total columns by the slice width to get the number of slices.
+    # 2. int(...) + 1: int()+1 is effectively ceil() which is what we want to get the actual whole number of slices
+    # 3. _ * COMBINER_COLUMN_SLICE_WIDTH: Multiplies each number by the slice width to get actual column counts for each slice.
+    slice_thresholds = [
+        (_ * COMBINER_COLUMN_SLICE_WIDTH)
+        for _ in range(int(len(validation_columns) / COMBINER_COLUMN_SLICE_WIDTH) + 1)
+    ]
+
+    result_df = None
+    # Process the input Dataframes in slices of columns to avoid "RecursionError"s.
+    for slice_start in slice_thresholds:
+        columns_in_vertical_slice = list(validation_columns)[
+            slice_start : slice_start + COMBINER_COLUMN_SLICE_WIDTH
+        ]
+        # Ensure any join columns are included in the column slice.
+        columns_in_vertical_slice.extend(
+            set(join_on_fields) - set(columns_in_vertical_slice)
+        )
+        interim_result_df = _generate_report_slice(
+            run_metadata,
+            source_df[columns_in_vertical_slice],
+            target_df[columns_in_vertical_slice],
+            join_on_fields=join_on_fields,
+            is_value_comparison=is_value_comparison,
+            verbose=verbose,
+        )
+        if result_df is None:
+            result_df = interim_result_df
+        else:
+            result_df = pandas.concat([result_df, interim_result_df])
+
+    # Get the first validation metadata object to fill source and/or target empty table names.
+    first = run_metadata.validations[next(iter(run_metadata.validations))]
+    if first.validation_type != consts.CUSTOM_QUERY:
+        result_df.source_table_name.fillna(
+            first.get_table_name(consts.RESULT_TYPE_SOURCE), inplace=True
+        )
+        result_df.target_table_name.fillna(
+            first.get_table_name(consts.RESULT_TYPE_TARGET), inplace=True
+        )
+
+    _get_summary(run_metadata, result_df, source_df, target_df)
+
+    return result_df
+
+
+def _generate_report_slice(
+    run_metadata: "RunMetadata",
+    source_df: "DataFrame",
+    target_df: "DataFrame",
+    join_on_fields=(),
+    is_value_comparison=False,
+    verbose=False,
+) -> "DataFrame":
     """Combine results into a report.
 
     Args:
-        client (ibis.client.Client): Ibis client used to combine results.
-        run_metadata (data_validation.metadata.RunMetadata):
-            Metadata about the run and validations.
-        source (ibis.QUERY): Ibis query / table object.
-        target (ibis.QUERY): Ibis query / table object.
+        run_metadata: Metadata about the run and validations.
+        source_df: Dataframe contains results of source query.
+        target_df: Dataframe contains results of target query.
         join_on_fields (Sequence[str]):
             A collection of column names to use to join source and target.
             These are the columns that both the source and target queries
@@ -61,16 +152,15 @@ def generate_report(
             A pandas DataFrame with the results of the validation in the same
             schema as the report table.
     """
-    join_on_fields = tuple(join_on_fields)
+    client = ibis.pandas.connect(
+        {
+            consts.RESULT_TYPE_SOURCE: source_df,
+            consts.RESULT_TYPE_TARGET: target_df,
+        }
+    )
+    source = client.table(consts.RESULT_TYPE_SOURCE)
+    target = client.table(consts.RESULT_TYPE_TARGET)
 
-    source_names = source.schema().names
-    target_names = target.schema().names
-
-    if source_names != target_names:
-        raise ValueError(
-            "Expected source and target to have same schema, got "
-            f"source: {source_names} target: {target_names}"
-        )
     differences_pivot = _calculate_differences(
         source, target, join_on_fields, run_metadata.validations, is_value_comparison
     )
@@ -79,21 +169,25 @@ def generate_report(
     source_pivot = _pivot_result(
         source, join_on_fields, run_metadata.validations, consts.RESULT_TYPE_SOURCE
     )
-    source_df = client.execute(source_pivot)
+    source_pivot_df = client.execute(source_pivot)
 
     target_pivot = _pivot_result(
         target, join_on_fields, run_metadata.validations, consts.RESULT_TYPE_TARGET
     )
-    target_df = client.execute(target_pivot)
+    target_pivot_df = client.execute(target_pivot)
 
     con = ibis.pandas.connect(
-        {"source": source_df, "differences": differences_df, "target": target_df}
+        {
+            consts.RESULT_TYPE_SOURCE: source_pivot_df,
+            consts.RESULT_TYPE_DIFFERENCES: differences_df,
+            consts.RESULT_TYPE_TARGET: target_pivot_df,
+        }
     )
     joined = _join_pivots(
         con.tables.source, con.tables.target, con.tables.differences, join_on_fields
     )
 
-    documented = _add_metadata(joined, run_metadata)
+    documented, run_metadata = _add_metadata(joined, run_metadata)
 
     if verbose:
         logging.debug("-- ** Combiner Query ** --")
@@ -101,26 +195,15 @@ def generate_report(
 
     result_df = client.execute(documented)
     result_df.validation_status.fillna(consts.VALIDATION_STATUS_FAIL, inplace=True)
-
-    # get the first validation metadata object to fill source and/or target empty table names
-    first = run_metadata.validations[next(iter(run_metadata.validations))]
-    if first.validation_type != consts.CUSTOM_QUERY:
-        result_df.source_table_name.fillna(
-            first.get_table_name(consts.RESULT_TYPE_SOURCE), inplace=True
-        )
-        result_df.target_table_name.fillna(
-            first.get_table_name(consts.RESULT_TYPE_TARGET), inplace=True
-        )
-
     return result_df
 
 
 def _calculate_difference(
-    field_differences,
+    field_differences: "IbisTable",
     datatype: dt.DataType,
     target_type: dt.DataType,
-    validation,
-    is_value_comparison,
+    validation: "ValidationMetadata",
+    is_value_comparison: bool,
 ):
     pct_threshold = ibis.literal(validation.threshold)
     if datatype.is_timestamp() or datatype.is_date():
@@ -207,15 +290,19 @@ def _calculate_difference(
             .end()
         )
     return (
-        difference.name("difference"),
-        pct_difference.name("pct_difference"),
-        pct_threshold.name("pct_threshold"),
-        validation_status.name("validation_status"),
+        difference.name(consts.VALIDATION_DIFFERENCE),
+        pct_difference.name(consts.VALIDATION_PCT_DIFFERENCE),
+        pct_threshold.name(consts.VALIDATION_PCT_THRESHOLD),
+        validation_status.name(consts.VALIDATION_STATUS),
     )
 
 
 def _calculate_differences(
-    source, target, join_on_fields, validations, is_value_comparison
+    source: "IbisTable",
+    target: "IbisTable",
+    join_on_fields: tuple,
+    validations: "dict[ValidationMetadata]",
+    is_value_comparison: bool,
 ):
     """Calculate differences between source and target fields.
 
@@ -250,7 +337,7 @@ def _calculate_differences(
         )
         differences_pivots.append(
             field_differences[
-                (ibis.literal(field).name("validation_name"),)
+                (ibis.literal(field).name(consts.VALIDATION_NAME),)
                 + join_on_fields
                 + _calculate_difference(
                     field_differences,
@@ -267,7 +354,24 @@ def _calculate_differences(
     return differences_pivot
 
 
-def _pivot_result(result, join_on_fields, validations, result_type):
+def _check_schema_names(source_df, target_df):
+    """Check that the two input Dataframes have matching column names."""
+    source_names = tuple(source_df.columns)
+    target_names = tuple(target_df.columns)
+
+    if source_names != target_names:
+        raise ValueError(
+            "Expected source and target to have same schema, got "
+            f"{consts.RESULT_TYPE_SOURCE}: {source_names}; {consts.RESULT_TYPE_TARGET}: {target_names}"
+        )
+
+
+def _pivot_result(
+    result: "IbisTable",
+    join_on_fields: tuple,
+    validations: "dict[ValidationMetadata]",
+    result_type: str,
+):
     all_fields = frozenset(result.schema().names)
     validation_fields = (
         all_fields - frozenset(join_on_fields)
@@ -285,19 +389,21 @@ def _pivot_result(result, join_on_fields, validations, result_type):
                     ibis.literal("{")
                     + ibis.literal(", ").join(validation.primary_keys)
                     + ibis.literal("}")
-                ).name("primary_keys")
+                ).name(consts.CONFIG_PRIMARY_KEYS)
             else:
-                primary_keys = ibis.literal(None).cast("string").name("primary_keys")
+                primary_keys = (
+                    ibis.literal(None).cast("string").name(consts.CONFIG_PRIMARY_KEYS)
+                )
 
             pivots.append(
                 result.projection(
                     (
-                        ibis.literal(field).name("validation_name"),
+                        ibis.literal(field).name(consts.VALIDATION_NAME),
                         ibis.literal(validation.validation_type).name(
-                            "validation_type"
+                            consts.VALIDATION_TYPE
                         ),
                         ibis.literal(validation.aggregation_type).name(
-                            "aggregation_type"
+                            consts.AGGREGATION_TYPE
                         ),
                         ibis.literal(validation.get_table_name(result_type)).name(
                             "table_name"
@@ -309,7 +415,7 @@ def _pivot_result(result, join_on_fields, validations, result_type):
                         .name("column_name"),
                         primary_keys,
                         ibis.literal(validation.num_random_rows).name(
-                            "num_random_rows"
+                            consts.NUM_RANDOM_ROWS
                         ),
                         result[field].cast("string").name("agg_value"),
                     )
@@ -333,7 +439,12 @@ def _as_json(expr):
     )
 
 
-def _join_pivots(source, target, differences, join_on_fields):
+def _join_pivots(
+    source: "IbisTable",
+    target: "IbisTable",
+    differences: "IbisTable",
+    join_on_fields: tuple,
+):
     if join_on_fields:
         join_values = []
         for field in join_on_fields:
@@ -346,62 +457,131 @@ def _join_pivots(source, target, differences, join_on_fields):
 
         group_by_columns = (
             ibis.literal("{") + ibis.literal(", ").join(join_values) + ibis.literal("}")
-        ).name("group_by_columns")
+        ).name(consts.GROUP_BY_COLUMNS)
     else:
-        group_by_columns = ibis.literal(None).cast("string").name("group_by_columns")
+        group_by_columns = (
+            ibis.literal(None).cast("string").name(consts.GROUP_BY_COLUMNS)
+        )
 
-    join_keys = ("validation_name",) + join_on_fields
+    join_keys = (consts.VALIDATION_NAME,) + join_on_fields
     source_difference = source.join(differences, join_keys, how="outer")[
         [source[field] for field in join_keys]
         + [
-            source["validation_type"],
-            source["aggregation_type"],
-            source["table_name"],
+            source[consts.VALIDATION_TYPE],
+            source[consts.AGGREGATION_TYPE],
+            source[consts.CONFIG_TABLE_NAME],
             source["column_name"],
-            source["primary_keys"],
-            source["num_random_rows"],
+            source[consts.CONFIG_PRIMARY_KEYS],
+            source[consts.NUM_RANDOM_ROWS],
             source["agg_value"],
-            differences["difference"],
-            differences["pct_difference"],
-            differences["pct_threshold"],
-            differences["validation_status"],
+            differences[consts.VALIDATION_DIFFERENCE],
+            differences[consts.VALIDATION_PCT_DIFFERENCE],
+            differences[consts.VALIDATION_PCT_THRESHOLD],
+            differences[consts.VALIDATION_STATUS],
         ]
     ]
     joined = source_difference.join(target, join_keys, how="outer")[
-        source_difference["validation_name"],
-        source_difference["validation_type"]
-        .fillna(target["validation_type"])
-        .name("validation_type"),
-        source_difference["aggregation_type"]
-        .fillna(target["aggregation_type"])
-        .name("aggregation_type"),
-        source_difference["table_name"].name("source_table_name"),
-        source_difference["column_name"].name("source_column_name"),
-        source_difference["agg_value"].name("source_agg_value"),
-        target["table_name"].name("target_table_name"),
-        target["column_name"].name("target_column_name"),
-        target["agg_value"].name("target_agg_value"),
+        source_difference[consts.VALIDATION_NAME],
+        source_difference[consts.VALIDATION_TYPE]
+        .fillna(target[consts.VALIDATION_TYPE])
+        .name(consts.VALIDATION_TYPE),
+        source_difference[consts.AGGREGATION_TYPE]
+        .fillna(target[consts.AGGREGATION_TYPE])
+        .name(consts.AGGREGATION_TYPE),
+        source_difference["table_name"].name(consts.SOURCE_TABLE_NAME),
+        source_difference["column_name"].name(consts.SOURCE_COLUMN_NAME),
+        source_difference["agg_value"].name(consts.SOURCE_AGG_VALUE),
+        target["table_name"].name(consts.TARGET_TABLE_NAME),
+        target["column_name"].name(consts.TARGET_COLUMN_NAME),
+        target["agg_value"].name(consts.TARGET_AGG_VALUE),
         group_by_columns,
-        source_difference["primary_keys"],
-        source_difference["num_random_rows"],
-        source_difference["difference"],
-        source_difference["pct_difference"],
-        source_difference["pct_threshold"],
-        source_difference["validation_status"],
+        source_difference[consts.CONFIG_PRIMARY_KEYS],
+        source_difference[consts.NUM_RANDOM_ROWS],
+        source_difference[consts.VALIDATION_DIFFERENCE],
+        source_difference[consts.VALIDATION_PCT_DIFFERENCE],
+        source_difference[consts.VALIDATION_PCT_THRESHOLD],
+        source_difference[consts.VALIDATION_STATUS],
     ]
     return joined
 
 
-def _add_metadata(joined, run_metadata):
+def _add_metadata(joined: "IbisTable", run_metadata: "RunMetadata"):
     # TODO: Add source and target queries to metadata
     run_metadata.end_time = datetime.datetime.now(datetime.timezone.utc)
 
     joined = joined[
         joined,
-        ibis.literal(run_metadata.run_id).name("run_id"),
-        ibis.literal(run_metadata.labels).name("labels"),
-        ibis.literal(run_metadata.start_time).name("start_time"),
-        ibis.literal(run_metadata.end_time).name("end_time"),
+        ibis.literal(run_metadata.run_id).name(consts.CONFIG_RUN_ID),
+        ibis.literal(run_metadata.labels).name(consts.CONFIG_LABELS),
+        ibis.literal(run_metadata.start_time).name(consts.CONFIG_START_TIME),
+        ibis.literal(run_metadata.end_time).name(consts.CONFIG_END_TIME),
     ]
 
-    return joined
+    return (joined, run_metadata)
+
+
+def _get_summary(
+    run_metadata: "RunMetadata",
+    result_df: "DataFrame",
+    source_df: "DataFrame",
+    target_df: "DataFrame",
+):
+    """Logs a summary report/stats of row validation results."""
+    try:
+        if result_df.empty:
+            return
+
+        if (result_df.loc[0, consts.VALIDATION_TYPE] == consts.ROW_VALIDATION) or (
+            # Check for custom-query row validation which always should have primary keys (not null)
+            result_df.loc[0, consts.VALIDATION_TYPE] == consts.CUSTOM_QUERY
+            and result_df.loc[0, consts.CONFIG_PRIMARY_KEYS]
+        ):
+            # Vectorized calculations for all counts.
+            success_condition = (
+                result_df[consts.VALIDATION_STATUS] == consts.VALIDATION_STATUS_SUCCESS
+            )
+            fail_condition = ~success_condition  # Invert success for fail condition.
+
+            source_not_in_target = (
+                result_df[consts.SOURCE_AGG_VALUE].notnull()
+                & result_df[consts.TARGET_AGG_VALUE].isnull()
+            )
+            target_not_in_source = (
+                result_df[consts.SOURCE_AGG_VALUE].isnull()
+                & result_df[consts.TARGET_AGG_VALUE].notnull()
+            )
+            present_in_both_tables = (
+                result_df[consts.SOURCE_AGG_VALUE].notnull()
+                & result_df[consts.TARGET_AGG_VALUE].notnull()
+            )
+
+            logging.info(
+                json.dumps(
+                    {
+                        consts.CONFIG_RUN_ID: run_metadata.run_id,
+                        consts.CONFIG_START_TIME: run_metadata.start_time.isoformat(),
+                        consts.CONFIG_END_TIME: run_metadata.end_time.isoformat(),
+                        # Explicit conversion of numpy's int64 values to int for JSON serializability
+                        consts.TOTAL_SOURCE_ROWS: int(source_df.shape[0]),
+                        consts.TOTAL_TARGET_ROWS: int(target_df.shape[0]),
+                        consts.TOTAL_ROWS_VALIDATED: int(result_df.shape[0]),
+                        # Using .sum() on boolean Series for much faster counting
+                        consts.TOTAL_ROWS_SUCCESS: int(success_condition.sum()),
+                        consts.TOTAL_ROWS_FAIL: int(fail_condition.sum()),
+                        consts.FAILED_SOURCE_NOT_IN_TARGET: int(
+                            (fail_condition & source_not_in_target).sum()
+                        ),
+                        consts.FAILED_TARGET_NOT_IN_SOURCE: int(
+                            (fail_condition & target_not_in_source).sum()
+                        ),
+                        consts.FAILED_PRESENT_IN_BOTH_TABLES: int(
+                            (fail_condition & present_in_both_tables).sum()
+                        ),
+                    }
+                )
+            )
+    except Exception as e:
+        logging.warning(
+            f"{COMBINER_GET_SUMMARY_EXC_TEXT}: {e}",
+            exc_info=True,
+        )

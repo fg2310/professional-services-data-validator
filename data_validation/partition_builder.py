@@ -17,8 +17,8 @@ import ibis
 import pandas
 import logging
 import re
-from typing import List, Dict
-from argparse import Namespace
+import datetime
+from typing import List, Dict, TYPE_CHECKING
 
 from data_validation import cli_tools, consts
 from data_validation.config_manager import ConfigManager
@@ -26,9 +26,12 @@ from data_validation.query_builder.partition_row_builder import PartitionRowBuil
 from data_validation.validation_builder import ValidationBuilder
 from data_validation.validation_builder import list_to_sublists
 
+if TYPE_CHECKING:
+    from argparse import Namespace
+
 
 class PartitionBuilder:
-    def __init__(self, config_managers: List[ConfigManager], args: Namespace) -> None:
+    def __init__(self, config_managers: List[ConfigManager], args: "Namespace") -> None:
         self.config_managers = config_managers
         self.table_count = len(config_managers)
         self.args = args
@@ -62,7 +65,7 @@ class PartitionBuilder:
         """
         # Create multiple yaml validation blocks corresponding to the filters provided
         yaml_validations = []
-        for (source_filter, target_filter) in zip(source_filters, target_filters):
+        for source_filter, target_filter in zip(source_filters, target_filters):
             filter_dict = {
                 "type": "custom",
                 "source": source_filter,
@@ -251,12 +254,13 @@ class PartitionBuilder:
 
             def less_than_value(table, keys, values):
                 key_column = table.__getattr__(keys[0])
-                if key_column.type().is_date():
-                    # Ensure date PKs are treated as date literals as per #1191
-                    value = values[0].date()
-                else:
-                    value = values[0]
-
+                # Due to issue 1474, the type can be datetime.datetime or datetime.date
+                value = (
+                    values[0].date()
+                    if key_column.type().is_date()
+                    and isinstance(values[0], datetime.datetime)
+                    else values[0]
+                )
                 if len(keys) == 1:
                     return key_column < value
                 else:
@@ -267,10 +271,13 @@ class PartitionBuilder:
 
             def geq_value(table, keys, values):
                 key_column = table.__getattr__(keys[0])
-                if key_column.type().is_date():
-                    value = values[0].date()
-                else:
-                    value = values[0]
+                # Due to issue 1474, the type can be datetime.datetime or datetime.date
+                value = (
+                    values[0].date()
+                    if key_column.type().is_date()
+                    and isinstance(values[0], datetime.datetime)
+                    else values[0]
+                )
 
                 if len(keys) == 1:
                     return key_column >= value

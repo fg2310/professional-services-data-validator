@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import logging
 import os
 from unittest import mock
 
@@ -20,9 +21,11 @@ import pathlib
 
 from data_validation import (
     cli_tools,
-    data_validation,
+    clients,
     consts,
+    data_validation,
 )
+from data_validation.result_handlers.base_backend import RH_WRITE_MESSAGE
 from tests.system.data_sources.deploy_cloudsql.cloudsql_resource_manager import (
     CloudSQLResourceManager,
 )
@@ -33,10 +36,12 @@ from tests.system.data_sources.common_functions import (
     column_validation_test_args,
     custom_query_validation_test,
     find_tables_test,
+    id_column_row_validation_test,
     id_type_test_assertions,
     null_not_null_assertions,
     partition_table_test,
     partition_query_test,
+    raw_query_rows,
     raw_query_test,
     row_validation_test,
     row_validation_many_columns_test,
@@ -56,7 +61,7 @@ POSTGRES_DATABASE = os.getenv("POSTGRES_DATABASE", "guestbook")
 PROJECT_ID = os.getenv("PROJECT_ID")
 
 CONN = {
-    "source_type": "Postgres",
+    consts.SOURCE_TYPE: consts.SOURCE_TYPE_POSTGRES,
     "host": POSTGRES_HOST,
     "user": "postgres",
     "password": POSTGRES_PASSWORD,
@@ -85,6 +90,38 @@ PG2PG_COLUMNS = [
     "col_bool",
     "col_uuid",
     "col_oid",
+]
+
+SUM_EPOCH_COL_DATETIME = "3093527978590011259"
+
+DVT_CORE_TYPES_RAW_DATA_TYPES = [
+    ("id", "integer", None, 4, None, None, None),
+    ("col_int8", "smallint", None, 2, None, None, None),
+    ("col_int16", "smallint", None, 2, None, None, None),
+    ("col_int32", "integer", None, 4, None, None, None),
+    ("col_int64", "bigint", None, 8, None, None, None),
+    ("col_dec_20", "numeric", None, 20, 20, 0, None),
+    ("col_dec_38", "numeric", None, 38, 38, 0, None),
+    ("col_dec_10_2", "numeric", None, 10, 10, 2, None),
+    ("col_float32", "real", None, 4, None, None, None),
+    ("col_float64", "double precision", None, 8, None, None, None),
+    ("col_varchar_30", "character varying", None, 30, None, None, None),
+    ("col_char_2", "character", None, 2, None, None, None),
+    ("col_string", "text", None, -1, None, None, None),
+    ("col_date", "date", None, 4, None, None, None),
+    ("col_datetime", "timestamp without time zone", None, 8, None, None, None),
+    ("col_tstz", "timestamp with time zone", None, 8, None, None, None),
+]
+
+EXPECTED_DATETIME_ID_PARTITION_FILTER = [
+    [
+        " ( NOT other_data IS NULL ) AND ( \"id\" < '2020-03-01T12:00:00' )",
+        " ( NOT other_data IS NULL ) AND ( \"id\" >= '2020-03-01T12:00:00' )",
+    ],
+    [
+        " ( NOT other_data IS NULL ) AND ( \"id\" < '2020-03-01T12:00:00' )",
+        " ( NOT other_data IS NULL ) AND ( \"id\" >= '2020-03-01T12:00:00' )",
+    ],
 ]
 
 
@@ -146,7 +183,7 @@ def test_postgres_count(cloud_sql):
                 consts.CONFIG_FIELD_ALIAS: "sum_entryid",
             },
         ],
-        consts.CONFIG_FORMAT: "table",
+        consts.CONFIG_FORMAT: consts.FORMAT_TYPE_TABLE,
         consts.CONFIG_FILTER_STATUS: None,
     }
 
@@ -156,7 +193,7 @@ def test_postgres_count(cloud_sql):
     )
     df = data_validator.execute()
 
-    assert df["source_agg_value"].equals(df["target_agg_value"])
+    assert df["source_agg_value"].equals(df[consts.TARGET_AGG_VALUE])
     assert sorted(list(df["source_agg_value"])) == ["28", "7", "7"]
 
 
@@ -475,7 +512,7 @@ def test_postgres_row(cloud_sql):
                 "cast": None,
             }
         ],
-        consts.CONFIG_FORMAT: "table",
+        consts.CONFIG_FORMAT: consts.FORMAT_TYPE_TABLE,
         consts.CONFIG_FILTER_STATUS: None,
         consts.CONFIG_RANDOM_ROW_BATCH_SIZE: "5",
         consts.CONFIG_USE_RANDOM_ROWS: True,
@@ -487,7 +524,7 @@ def test_postgres_row(cloud_sql):
     )
     df = data_validator.execute()
 
-    assert df["source_agg_value"][0] == df["target_agg_value"][0]
+    assert df["source_agg_value"][0] == df[consts.TARGET_AGG_VALUE][0]
 
 
 def mock_get_connection_config(*args):
@@ -552,7 +589,7 @@ def test_schema_validation(cloud_sql):
         consts.CONFIG_TYPE: "Schema",
         consts.CONFIG_SCHEMA_NAME: "public",
         consts.CONFIG_TABLE_NAME: "entries",
-        consts.CONFIG_FORMAT: "table",
+        consts.CONFIG_FORMAT: consts.FORMAT_TYPE_TABLE,
         consts.CONFIG_FILTER_STATUS: None,
     }
 
@@ -563,7 +600,7 @@ def test_schema_validation(cloud_sql):
     df = data_validator.execute()
 
     for validation in df.to_dict(orient="records"):
-        assert validation["validation_status"] == consts.VALIDATION_STATUS_SUCCESS
+        assert validation[consts.VALIDATION_STATUS] == consts.VALIDATION_STATUS_SUCCESS
 
 
 @mock.patch(
@@ -720,8 +757,8 @@ def test_column_validation_large_decimals_to_bigquery_mismatch():
         sum_cols=cols,
         expected_rows=2,
     )
-    assert "sum__col_dec_18_fail" in df["validation_name"].values
-    assert "sum__col_dec_18_1_fail" in df["validation_name"].values
+    assert "sum__col_dec_18_fail" in df[consts.VALIDATION_NAME].values
+    assert "sum__col_dec_18_1_fail" in df[consts.VALIDATION_NAME].values
 
 
 @mock.patch(
@@ -841,26 +878,39 @@ def test_row_validation_binary_pk_to_bigquery():
     new=mock_get_connection_config,
 )
 def test_row_validation_char_pk_to_bigquery():
-    """PostgreSQL to BigQuery dvt_char_id row validation.
-    This is testing CHAR primary key join columns.
-    Includes random row filter test.
-    """
-    parser = cli_tools.configure_arg_parser()
-    args = parser.parse_args(
-        [
-            "validate",
-            "row",
-            "-sc=pg-conn",
-            "-tc=bq-conn",
-            "-tbls=pso_data_validator.dvt_char_id",
-            "--primary-keys=id",
-            "--hash=id,other_data",
-            "--use-random-row",
-            "--random-row-batch-size=5",
-        ]
+    """Test padded char primary key join columns"""
+    id_column_row_validation_test(
+        "pso_data_validator.dvt_char_id",
     )
-    df = run_test_from_cli_args(args)
-    id_type_test_assertions(df)
+
+
+@mock.patch(
+    "data_validation.state_manager.StateManager.get_connection_config",
+    new=mock_get_connection_config,
+)
+def test_row_validation_datetime_pk_to_bigquery():
+    """Test datetime primary key join columns"""
+    # TODO Remove use_randow_row option below when issue-1445 is actioned.
+    id_column_row_validation_test(
+        "pso_data_validator.dvt_datetime_id",
+        use_randow_row=False,
+    )
+
+
+@mock.patch(
+    "data_validation.state_manager.StateManager.get_connection_config",
+    new=mock_get_connection_config,
+)
+def test_generate_partitions_datetime_pk():
+    """Test generate partitions on datetime primary key"""
+    pytest.skip("Skipping test_generate_partitions_datetime_pk due to issue-1443.")
+    partition_table_test(
+        EXPECTED_DATETIME_ID_PARTITION_FILTER,
+        pk="id",
+        tables="pso_data_validator.dvt_datetime_id",
+        filters="other_data IS NOT NULL",
+        partition_num=2,
+    )
 
 
 @mock.patch(
@@ -918,8 +968,21 @@ def test_find_views_and_tables():
     "data_validation.state_manager.StateManager.get_connection_config",
     new=mock_get_connection_config,
 )
+def test_column_validation_many_columns():
+    """dvt_many_cols column validation."""
+    column_validation_test(
+        tc="mock-conn",
+        tables="pso_data_validator.dvt_many_cols",
+        count_cols="*",
+    )
+
+
+@mock.patch(
+    "data_validation.state_manager.StateManager.get_connection_config",
+    new=mock_get_connection_config,
+)
 def test_row_validation_many_columns():
-    """PostgreSQL dvt_many_cols row validation.
+    """dvt_many_cols row validation.
     This is testing many columns logic for --hash, there's a Teradata test for --concat.
     """
     row_validation_many_columns_test(expected_config_managers=5)
@@ -980,8 +1043,40 @@ def test_column_validation_group_by_timestamp():
     assert len(df) == 3
     # All groups should be a successful validation.
     assert all(
-        _ == "success" for _ in df["validation_status"]
+        _ == "success" for _ in df[consts.VALIDATION_STATUS]
     ), "Not all records are marked as success"
+
+
+@mock.patch(
+    "data_validation.state_manager.StateManager.get_connection_config",
+    new=mock_get_connection_config,
+)
+def test_column_validation_high_epoch_seconds():
+    """Test column validation on a table with an extreme result from sum(epoch seconds)."""
+    df = column_validation_test(
+        tc="mock-conn",
+        tables="pso_data_validator.dvt_high_epoch_seconds=pso_data_validator.dvt_high_epoch_seconds2",
+        sum_cols="col_datetime,col_datetime_fail",
+        filter_status=None,
+        # We expect two rows:
+        #   success for simple count
+        #   success for col_datetime
+        #   failure for col_datetime_fail (which has an intentional data error)
+        expected_rows=3,
+    )
+    status_dict = dict(zip(df[consts.VALIDATION_NAME], df[consts.VALIDATION_STATUS]))
+    value_dict = dict(zip(df[consts.VALIDATION_NAME], df["source_agg_value"]))
+    assert (
+        status_dict["sum__epoch_seconds__col_datetime"]
+        == consts.VALIDATION_STATUS_SUCCESS
+    ), 'sum__epoch_seconds__col_datetime should have status "success"'
+    assert (
+        status_dict["sum__epoch_seconds__col_datetime_fail"]
+        == consts.VALIDATION_STATUS_FAIL
+    ), 'sum__epoch_seconds__col_datetime_fail should have status "fail"'
+    assert (
+        str(value_dict["sum__epoch_seconds__col_datetime"]) == SUM_EPOCH_COL_DATETIME
+    ), f"sum__epoch_seconds__col_datetime != SUM_EPOCH_COL_DATETIME ({SUM_EPOCH_COL_DATETIME})"
 
 
 @mock.patch(
@@ -996,6 +1091,7 @@ def test_column_validation_tricky_dates_to_bigquery():
         min_cols="*",
         max_cols="*",
         sum_cols="*",
+        grouped_columns="id",
         wildcard_include_timestamp=True,
     )
 
@@ -1017,6 +1113,57 @@ def test_row_validation_identifiers():
     "data_validation.state_manager.StateManager.get_connection_config",
     new=mock_get_connection_config,
 )
+def test_schema_validation_reserved_words():
+    """Test schema validation on a table with reserved words in column names."""
+    schema_validation_test(
+        tables="pso_data_validator.dvt_reserved_word_columns",
+        tc="mock-conn",
+    )
+
+
+@mock.patch(
+    "data_validation.state_manager.StateManager.get_connection_config",
+    new=mock_get_connection_config,
+)
+def test_column_validation_reserved_words():
+    """Test column validation on a table with reserved words in column names."""
+    column_validation_test(
+        tc="mock-conn",
+        tables="pso_data_validator.dvt_reserved_word_columns",
+        count_cols="*",
+    )
+
+
+@mock.patch(
+    "data_validation.state_manager.StateManager.get_connection_config",
+    new=mock_get_connection_config,
+)
+def test_row_validation_reserved_words():
+    """Test row validation on a table with reserved words in column names."""
+    row_validation_test(
+        tables="pso_data_validator.dvt_reserved_word_columns",
+        tc="mock-conn",
+        hash="*",
+    )
+
+
+@mock.patch(
+    "data_validation.state_manager.StateManager.get_connection_config",
+    new=mock_get_connection_config,
+)
+def test_row_validation_comp_fields_reserved_words():
+    """Test row validation on a table with reserved words in column names."""
+    row_validation_test(
+        tables="pso_data_validator.dvt_reserved_word_columns",
+        tc="mock-conn",
+        comp_fields="*",
+    )
+
+
+@mock.patch(
+    "data_validation.state_manager.StateManager.get_connection_config",
+    new=mock_get_connection_config,
+)
 def test_row_validation_tricky_dates_to_bigquery():
     """Test with date values that are at the extremes, e.g. 9999-12-31."""
     row_validation_test(
@@ -1030,6 +1177,59 @@ def test_row_validation_tricky_dates_to_bigquery():
     "data_validation.state_manager.StateManager.get_connection_config",
     new=mock_get_connection_config,
 )
+def test_row_validation_tricky_strings_to_bigquery():
+    """Test with string values containing special characters."""
+    row_validation_test(
+        tables="pso_data_validator.dvt_tricky_strings",
+        tc="bq-conn",
+        hash="*",
+    )
+
+
+@mock.patch(
+    "data_validation.state_manager.StateManager.get_connection_config",
+    new=mock_get_connection_config,
+)
+@mock.patch(
+    "data_validation.state_manager.StateManager.list_connections",
+    return_value="mock-conn",
+)
+def test_result_handler_postgres(mock_list, caplog):
+    """Test result handler using dvt_core_types schema validation."""
+    table_id = "pso_data_validator_results.results_data"
+    caplog.set_level(logging.INFO)
+    df = schema_validation_test(
+        tables="pso_data_validator.dvt_core_types",
+        tc="mock-conn",
+        filter_status=None,
+        result_handler=f"mock-conn.{table_id}",
+    )
+    assert any(_ for _ in caplog.records if RH_WRITE_MESSAGE in _.msg)
+    run_id = df[consts.CONFIG_RUN_ID][0]
+
+    # Hijacking DVT raw query to query the results the table.
+    rows = raw_query_rows(
+        f"SELECT COUNT(*) FROM {table_id} WHERE run_id = '{run_id}'", conn="mock-conn"
+    )
+    # Ensure that we added the data to the results table.
+    assert len(df) == rows[0][0]
+
+
+@mock.patch(
+    "data_validation.state_manager.StateManager.get_connection_config",
+    new=mock_get_connection_config,
+)
 def test_raw_query_dvt_row_types(capsys):
     """Test data-validation query command."""
     raw_query_test(capsys)
+
+
+def test_raw_column_metadata():
+    """Test that get_raw_data_types custom Backend method returns expected results."""
+    client = clients.get_data_client(CONN)
+    raw_types = list(
+        client.raw_column_metadata(
+            database="pso_data_validator", table="dvt_core_types"
+        )
+    )
+    assert raw_types == DVT_CORE_TYPES_RAW_DATA_TYPES

@@ -34,6 +34,8 @@ from tests.system.data_sources.test_bigquery import BQ_CONN
 
 
 PROJECT_ID = os.environ["PROJECT_ID"]
+SPANNER_INSTANCE = os.getenv("SPANNER_INSTANCE", "span1")
+SPANNER_DATABASE = os.getenv("SPANNER_DATABASE", "pso_data_validator")
 SPANNER_CONN_NAME = "spanner-integration-test"
 CLI_FIND_TABLES_ARGS = [
     "find-tables",
@@ -44,10 +46,10 @@ CLI_FIND_TABLES_ARGS = [
 ]
 
 SPANNER_CONN = {
-    "source_type": "Spanner",
+    consts.SOURCE_TYPE: consts.SOURCE_TYPE_SPANNER,
     "project_id": PROJECT_ID,
-    "instance_id": "span1",
-    "database_id": "pso_data_validator",
+    "instance_id": SPANNER_INSTANCE,
+    "database_id": SPANNER_DATABASE,
 }
 
 
@@ -102,7 +104,7 @@ def count_config():
                 consts.CONFIG_FIELD_ALIAS: "min_int_col",
             },
         ],
-        consts.CONFIG_FORMAT: "table",
+        consts.CONFIG_FORMAT: consts.FORMAT_TYPE_TABLE,
         consts.CONFIG_FILTER_STATUS: None,
     }
 
@@ -140,7 +142,7 @@ def grouped_config():
                 consts.CONFIG_CAST: "date",
             },
         ],
-        consts.CONFIG_FORMAT: "table",
+        consts.CONFIG_FORMAT: consts.FORMAT_TYPE_TABLE,
         consts.CONFIG_FILTER_STATUS: None,
     }
 
@@ -156,17 +158,19 @@ def test_count_validator(count_config):
     validator = data_validation.DataValidation(count_config, verbose=True)
     df = validator.execute()
 
-    count_value = df[df["validation_name"] == "count"]["source_agg_value"].values[0]
-    count_string_value = df[df["validation_name"] == "count_string_col"][
+    count_value = df[df[consts.VALIDATION_NAME] == "count"]["source_agg_value"].values[
+        0
+    ]
+    count_string_value = df[df[consts.VALIDATION_NAME] == "count_string_col"][
         "source_agg_value"
     ].values[0]
-    avg_float_value = df[df["validation_name"] == "avg_float_col"][
+    avg_float_value = df[df[consts.VALIDATION_NAME] == "avg_float_col"][
         "source_agg_value"
     ].values[0]
-    max_timestamp_value = df[df["validation_name"] == "max_timestamp_col"][
+    max_timestamp_value = df[df[consts.VALIDATION_NAME] == "max_timestamp_col"][
         "source_agg_value"
     ].values[0]
-    min_int_value = df[df["validation_name"] == "min_int_col"][
+    min_int_value = df[df[consts.VALIDATION_NAME] == "min_int_col"][
         "source_agg_value"
     ].values[0]
 
@@ -183,17 +187,17 @@ def test_count_validator(count_config):
 def test_grouped_count_validator(grouped_config):
     validator = data_validation.DataValidation(grouped_config, verbose=True)
     df = validator.execute()
-    rows = list(df[df["validation_name"] == "count"].iterrows())
+    rows = list(df[df[consts.VALIDATION_NAME] == "count"].iterrows())
 
     # Check that all partitions are unique.
-    partitions = frozenset(df["group_by_columns"])
+    partitions = frozenset(df[consts.GROUP_BY_COLUMNS])
     assert len(rows) == len(partitions)
     assert len(rows) > 1
-    assert df["source_agg_value"].sum() == df["target_agg_value"].sum()
+    assert df["source_agg_value"].sum() == df[consts.TARGET_AGG_VALUE].sum()
 
     for _, row in rows:
         assert float(row["source_agg_value"]) > 0
-        assert row["source_agg_value"] == row["target_agg_value"]
+        assert row["source_agg_value"] == row[consts.TARGET_AGG_VALUE]
 
 
 @mock.patch(
@@ -353,6 +357,19 @@ def test_row_validation_many_columns():
     This is testing many columns logic for --hash, there's a Teradata test for --concat.
     """
     row_validation_many_columns_test()
+
+
+@mock.patch(
+    "data_validation.state_manager.StateManager.get_connection_config",
+    new=mock_get_connection_config,
+)
+def test_row_validation_tricky_strings_to_bigquery():
+    """Test with string values containing special characters."""
+    row_validation_test(
+        tables="pso_data_validator.dvt_tricky_strings",
+        tc="bq-conn",
+        hash="*",
+    )
 
 
 @mock.patch(

@@ -22,6 +22,7 @@ from data_validation import cli_tools, data_validation, consts, exceptions
 from tests.system.data_sources.common_functions import (
     binary_key_assertions,
     find_tables_test,
+    id_column_row_validation_test,
     id_type_test_assertions,
     null_not_null_assertions,
     raw_query_test,
@@ -43,7 +44,7 @@ from tests.system.data_sources.common_functions import (
 MYSQL_HOST = os.getenv("MYSQL_HOST", "localhost")
 MYSQL_USER = os.getenv("MYSQL_USER", "dvt")
 CONN = {
-    "source_type": "MySQL",
+    consts.SOURCE_TYPE: consts.SOURCE_TYPE_MYSQL,
     "host": MYSQL_HOST,
     "user": MYSQL_USER,
     "password": os.getenv("MYSQL_PASSWORD"),
@@ -68,9 +69,20 @@ CONFIG_COUNT_VALID = {
             consts.CONFIG_FIELD_ALIAS: "count",
         },
     ],
-    consts.CONFIG_FORMAT: "table",
+    consts.CONFIG_FORMAT: consts.FORMAT_TYPE_TABLE,
     consts.CONFIG_FILTER_STATUS: None,
 }
+
+EXPECTED_DATETIME_ID_PARTITION_FILTER = [
+    [
+        " ( NOT other_data IS NULL ) AND ( \"id\" < '2020-03-01T12:00:00' )",
+        " ( NOT other_data IS NULL ) AND ( \"id\" >= '2020-03-01T12:00:00' )",
+    ],
+    [
+        " ( NOT other_data IS NULL ) AND ( \"id\" < '2020-03-01T12:00:00' )",
+        " ( NOT other_data IS NULL ) AND ( \"id\" >= '2020-03-01T12:00:00' )",
+    ],
+]
 
 
 def mock_get_connection_config(*args):
@@ -87,7 +99,7 @@ def test_mysql_count_invalid_host():
             verbose=False,
         )
         df = data_validator.execute()
-        assert df["source_agg_value"][0] == df["target_agg_value"][0]
+        assert df["source_agg_value"][0] == df[consts.TARGET_AGG_VALUE][0]
     except exceptions.DataClientConnectionFailure:
         # Local Testing will not work for MySQL
         pass
@@ -382,31 +394,45 @@ def test_row_validation_binary_pk_to_bigquery():
     new=mock_get_connection_config,
 )
 def test_row_validation_char_pk_to_bigquery():
-    """MySQL to BigQuery dvt_char_id row validation.
-    This is testing CHAR primary key join columns.
-    Includes random row filter test.
+    """Test padded char primary key join columns.
 
     Note that this test will fail unless PAD_CHAR_TO_FULL_LENGTH SQL mode is enabled.
     """
     pytest.skip(
         "Skipping test_row_validation_char_pk_to_bigquery because PAD_CHAR_TO_FULL_LENGTH SQL mode needs to be enabled."
     )
-    parser = cli_tools.configure_arg_parser()
-    args = parser.parse_args(
-        [
-            "validate",
-            "row",
-            "-sc=mysql-conn",
-            "-tc=bq-conn",
-            "-tbls=pso_data_validator.dvt_char_id",
-            "--primary-keys=id",
-            "--hash=id,other_data",
-            "--use-random-row",
-            "--random-row-batch-size=5",
-        ]
+    id_column_row_validation_test(
+        "pso_data_validator.dvt_char_id",
     )
-    df = run_test_from_cli_args(args)
-    id_type_test_assertions(df)
+
+
+@mock.patch(
+    "data_validation.state_manager.StateManager.get_connection_config",
+    new=mock_get_connection_config,
+)
+def test_row_validation_datetime_pk_to_bigquery():
+    """Test datetime primary key join columns"""
+    # TODO Remove use_randow_row option below when issue-1445 is actioned.
+    id_column_row_validation_test(
+        "pso_data_validator.dvt_datetime_id",
+        use_randow_row=False,
+    )
+
+
+@mock.patch(
+    "data_validation.state_manager.StateManager.get_connection_config",
+    new=mock_get_connection_config,
+)
+def test_generate_partitions_datetime_pk():
+    """Test generate partitions on datetime primary key"""
+    pytest.skip("Skipping test_generate_partitions_datetime_pk due to issue-1443.")
+    partition_table_test(
+        EXPECTED_DATETIME_ID_PARTITION_FILTER,
+        pk="id",
+        tables="pso_data_validator.dvt_datetime_id",
+        filters="other_data IS NOT NULL",
+        partition_num=2,
+    )
 
 
 @mock.patch(
@@ -436,6 +462,57 @@ def test_row_validation_pangrams_to_bigquery():
     )
     df = run_test_from_cli_args(args)
     id_type_test_assertions(df)
+
+
+@mock.patch(
+    "data_validation.state_manager.StateManager.get_connection_config",
+    new=mock_get_connection_config,
+)
+def test_schema_validation_reserved_words():
+    """Test schema validation on a table with reserved words in column names."""
+    schema_validation_test(
+        tables="pso_data_validator.dvt_reserved_word_columns",
+        tc="mock-conn",
+    )
+
+
+@mock.patch(
+    "data_validation.state_manager.StateManager.get_connection_config",
+    new=mock_get_connection_config,
+)
+def test_column_validation_reserved_words():
+    """Test column validation on a table with reserved words in column names."""
+    column_validation_test(
+        tc="mock-conn",
+        tables="pso_data_validator.dvt_reserved_word_columns",
+        count_cols="*",
+    )
+
+
+@mock.patch(
+    "data_validation.state_manager.StateManager.get_connection_config",
+    new=mock_get_connection_config,
+)
+def test_row_validation_reserved_words():
+    """Test row validation on a table with reserved words in column names."""
+    row_validation_test(
+        tables="pso_data_validator.dvt_reserved_word_columns",
+        tc="mock-conn",
+        hash="*",
+    )
+
+
+@mock.patch(
+    "data_validation.state_manager.StateManager.get_connection_config",
+    new=mock_get_connection_config,
+)
+def test_row_validation_comp_fields_reserved_words():
+    """Test row validation on a table with reserved words in column names."""
+    row_validation_test(
+        tables="pso_data_validator.dvt_reserved_word_columns",
+        tc="mock-conn",
+        comp_fields="*",
+    )
 
 
 @mock.patch(

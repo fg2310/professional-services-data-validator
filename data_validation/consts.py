@@ -56,6 +56,8 @@ CONFIG_CASE_INSENSITIVE_MATCH = "case_insensitive_match"
 CONFIG_ROW_CONCAT = "concat"
 CONFIG_ROW_HASH = "hash"
 CONFIG_RUN_ID = "run_id"
+CONFIG_START_TIME = "start_time"
+CONFIG_END_TIME = "end_time"
 CONFIG_SOURCE_COLUMN = "source_column"
 CONFIG_TARGET_COLUMN = "target_column"
 CONFIG_THRESHOLD = "threshold"
@@ -120,14 +122,31 @@ YAML_SOURCE = "source"
 YAML_TARGET = "target"
 YAML_VALIDATIONS = "validations"
 
+# Connection key constants.
+SOURCE_TYPE_BIGQUERY = "BigQuery"
+SOURCE_TYPE_DB2 = "DB2"
+SOURCE_TYPE_FILESYSTEM = "FileSystem"
+SOURCE_TYPE_IMPALA = "Impala"
+SOURCE_TYPE_MSSQL = "MSSQL"
+SOURCE_TYPE_MYSQL = "MySQL"
+SOURCE_TYPE_ORACLE = "Oracle"
+SOURCE_TYPE_POSTGRES = "Postgres"
+SOURCE_TYPE_REDSHIFT = "Redshift"
+SOURCE_TYPE_SNOWFLAKE = "Snowflake"
+SOURCE_TYPE_SPANNER = "Spanner"
+SOURCE_TYPE_TERADATA = "Teradata"
+
 # BigQuery Result Handler Configs
+RH_TYPE = "type"
+RH_CONN = "connection"
 PROJECT_ID = "project_id"
 TABLE_ID = "table_id"
 GOOGLE_SERVICE_ACCOUNT_KEY_PATH = "google_service_account_key_path"
 API_ENDPOINT = "api_endpoint"
 
-# BigQuery Output Table Fields
+# Result Handler Output Table Fields
 VALIDATION_TYPE = "validation_type"
+VALIDATION_NAME = "validation_name"
 AGGREGATION_TYPE = "aggregation_type"
 GROUP_BY_COLUMNS = "group_by_columns"
 
@@ -142,11 +161,25 @@ TARGET_AGG_VALUE = "target_agg_value"
 VALIDATION_STATUS = "validation_status"
 VALIDATION_STATUS_SUCCESS = "success"
 VALIDATION_STATUS_FAIL = "fail"
-# TODO: update if we start to support other statuses
 VALIDATION_STATUSES = [
     VALIDATION_STATUS_SUCCESS,
     VALIDATION_STATUS_FAIL,
 ]
+VALIDATION_DIFFERENCE = "difference"
+VALIDATION_PCT_DIFFERENCE = "pct_difference"
+VALIDATION_PCT_THRESHOLD = "pct_threshold"
+
+NUM_RANDOM_ROWS = "num_random_rows"
+
+# Summary stats of Row Validation results
+TOTAL_SOURCE_ROWS = "total_source_rows"
+TOTAL_TARGET_ROWS = "total_target_rows"
+TOTAL_ROWS_VALIDATED = "total_rows_validated"
+TOTAL_ROWS_SUCCESS = "total_rows_success_validation_status"
+TOTAL_ROWS_FAIL = "total_rows_fail_validation_status"
+FAILED_SOURCE_NOT_IN_TARGET = "failed_rows_present_in_source_not_in_target"
+FAILED_TARGET_NOT_IN_SOURCE = "failed_rows_present_in_target_not_in_source"
+FAILED_PRESENT_IN_BOTH_TABLES = "failed_rows_present_in_both_source_and_target"
 
 # SQL Template Formatting
 # TODO: should this be managed in query_builder if that is the only place its used?
@@ -155,32 +188,40 @@ COUNT_STAR = "{count_star}"
 # Validation metadata
 RESULT_TYPE_SOURCE = "source"
 RESULT_TYPE_TARGET = "target"
+RESULT_TYPE_DIFFERENCES = "differences"
 
-FORMAT_TYPES = ["csv", "json", "table", "text"]
+FORMAT_TYPE_CSV = "csv"
+FORMAT_TYPE_JSON = "json"
+FORMAT_TYPE_MINIMAL = "minimal"
+FORMAT_TYPE_PYTHON = "python"
+FORMAT_TYPE_TABLE = "table"
+FORMAT_TYPE_TEXT = "text"
+FORMAT_TYPES = [FORMAT_TYPE_CSV, FORMAT_TYPE_JSON, FORMAT_TYPE_TABLE, FORMAT_TYPE_TEXT]
+RAW_QUERY_FORMAT_TYPES = [FORMAT_TYPE_MINIMAL, FORMAT_TYPE_PYTHON]
 
 # Text Result Handler column filter list
 COLUMN_FILTER_LIST = [
-    "aggregation_type",
-    "end_time",
-    "labels",
-    "pct_threshold",
-    "start_time",
-    "target_table_name",
-    "target_column_name",
-    "difference",
-    "primary_keys",
-    "group_by_columns",
-    "num_random_rows",
+    AGGREGATION_TYPE,
+    CONFIG_END_TIME,
+    CONFIG_LABELS,
+    VALIDATION_PCT_THRESHOLD,
+    CONFIG_START_TIME,
+    TARGET_TABLE_NAME,
+    TARGET_COLUMN_NAME,
+    VALIDATION_DIFFERENCE,
+    CONFIG_PRIMARY_KEYS,
+    GROUP_BY_COLUMNS,
+    NUM_RANDOM_ROWS,
 ]
 SCHEMA_VALIDATION_COLUMN_FILTER_LIST = [
-    "start_time",
-    "end_time",
-    "aggregation_type",
-    "difference",
-    "primary_keys",
-    "group_by_columns",
-    "num_random_rows",
-    "pct_threshold",
+    CONFIG_START_TIME,
+    CONFIG_END_TIME,
+    AGGREGATION_TYPE,
+    VALIDATION_DIFFERENCE,
+    CONFIG_PRIMARY_KEYS,
+    GROUP_BY_COLUMNS,
+    NUM_RANDOM_ROWS,
+    VALIDATION_PCT_THRESHOLD,
 ]
 
 # Constants for the named column used in generate partitions

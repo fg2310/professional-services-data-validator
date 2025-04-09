@@ -48,7 +48,7 @@ CLI_ADD_CONNECTION_ARGS = [
     "add",
     "--connection-name",
     "test",
-    "BigQuery",
+    consts.SOURCE_TYPE_BIGQUERY,
     "--project-id",
     "example-project",
 ]
@@ -60,7 +60,7 @@ CLI_EXPECTED_CONNECTION_FILE_PATH = (
 )
 
 CLI_EXPECTED_CONNECTION = {
-    "source_type": "BigQuery",
+    consts.SOURCE_TYPE: consts.SOURCE_TYPE_BIGQUERY,
     "secret_manager_type": None,
     "secret_manager_project_id": None,
     "project_id": "example-project",
@@ -71,7 +71,7 @@ CLI_ADD_CONNECTION_BAD_ARGS = [
     "add",
     "--bad-name",
     "test",
-    "BigQuery",
+    consts.SOURCE_TYPE_BIGQUERY,
 ]
 
 CLI_ADD_BQ_CONNECTION_ARGS = [
@@ -79,11 +79,42 @@ CLI_ADD_BQ_CONNECTION_ARGS = [
     "add",
     "--connection-name",
     "test_with_endpoint",
-    "BigQuery",
+    consts.SOURCE_TYPE_BIGQUERY,
     "--project-id",
     "example-project",
     "--api-endpoint",
     "https://mybq.p.googleapis.com",
+]
+
+
+SNOWFLAKE_CONNECTION_ARGS_DICT_STR = (
+    '{"private_key_file": "/dir/rsa_key.p8", "private_key_file_pwd": "p@1"}'
+)
+CLI_ADD_SNOWFLAKE_CONNECTION_ARGS = [
+    "connections",
+    "add",
+    "--connection-name",
+    "snowflake_conn",
+    "Snowflake",
+    "--user=dvtuserp8",
+    "--password=",
+    "--account=some-str",
+    "--database=pso_data_validator",
+    f"--connect-args={SNOWFLAKE_CONNECTION_ARGS_DICT_STR}",
+]
+
+TERADATA_CONNECTION_ARGS_DICT_STR = '{"a": "1", "b": 2}'
+CLI_ADD_TERADATA_CONNECTION_ARGS = [
+    "connections",
+    "add",
+    "--connection-name",
+    "teradata_conn",
+    "Teradata",
+    "--host=host_name",
+    "--port=123",
+    "--user-name=dvt_user",
+    "--password=dvt_pass",
+    f"--json-params={TERADATA_CONNECTION_ARGS_DICT_STR}",
 ]
 
 CLI_ADD_ORACLE_STD_CONNECTION_ARGS = [
@@ -137,7 +168,7 @@ TEST_VALIDATION_CONFIG = {
             "target_table_name": "citibike_trips",
             "labels": [],
             "threshold": 0.0,
-            "format": "table",
+            "format": consts.FORMAT_TYPE_TABLE,
             "filters": [],
             "aggregates": [
                 {
@@ -275,9 +306,9 @@ def test_create_bq_connection(caplog, fs):
     assert gcs_helper.WRITE_SUCCESS_STRING in caplog.records[0].msg
 
     bq_conn = cli_tools.get_connection(args.connection_name)
-    assert bq_conn["source_type"] == "BigQuery"
+    assert bq_conn[consts.SOURCE_TYPE] == consts.SOURCE_TYPE_BIGQUERY
 
-    conn_from_file = cli_tools.get_connection("test_with_endpoint")
+    conn_from_file = cli_tools.get_connection(args.connection_name)
     assert conn_from_file["api_endpoint"] == "https://mybq.p.googleapis.com"
 
 
@@ -298,6 +329,47 @@ def test_create_connections_oracle(mock_write_file):
     conn = cli_tools.get_connection_config_from_args(args)
     assert "url" in conn
     cli_tools.store_connection(args.connection_name, conn)
+
+
+def test_create_snowflake_connection(caplog, fs):
+    caplog.set_level(logging.INFO)
+    # Create Connection
+    parser = cli_tools.configure_arg_parser()
+    args = parser.parse_args(CLI_ADD_SNOWFLAKE_CONNECTION_ARGS)
+    conn = cli_tools.get_connection_config_from_args(args)
+    cli_tools.store_connection(args.connection_name, conn)
+
+    assert gcs_helper.WRITE_SUCCESS_STRING in caplog.records[0].msg
+
+    conn = cli_tools.get_connection(args.connection_name)
+    assert conn[consts.SOURCE_TYPE] == consts.SOURCE_TYPE_SNOWFLAKE
+    assert conn["user"] == args.user
+    assert conn["password"] == args.password
+    assert conn["account"] == args.account
+
+    conn_from_file = cli_tools.get_connection(args.connection_name)
+    assert conn_from_file["connect_args"] == SNOWFLAKE_CONNECTION_ARGS_DICT_STR
+
+
+def test_create_teradata_connection(caplog, fs):
+    caplog.set_level(logging.INFO)
+    # Create Connection
+    parser = cli_tools.configure_arg_parser()
+    args = parser.parse_args(CLI_ADD_TERADATA_CONNECTION_ARGS)
+    conn = cli_tools.get_connection_config_from_args(args)
+    cli_tools.store_connection(args.connection_name, conn)
+
+    assert gcs_helper.WRITE_SUCCESS_STRING in caplog.records[0].msg
+
+    conn = cli_tools.get_connection(args.connection_name)
+    assert conn[consts.SOURCE_TYPE] == consts.SOURCE_TYPE_TERADATA
+    assert conn["host"] == args.host
+    assert conn["port"] == args.port
+    assert conn["user_name"] == args.user_name
+    assert conn["password"] == args.password
+
+    conn_from_file = cli_tools.get_connection(args.connection_name)
+    assert conn_from_file["json_params"] == TERADATA_CONNECTION_ARGS_DICT_STR
 
 
 def test_configure_arg_parser_list_and_run_validation_configs():
@@ -517,7 +589,7 @@ def test_get_arg_list(test_input, expected):
         (
             "project.dataset.table",
             {
-                "type": "BigQuery",
+                consts.RH_TYPE: consts.SOURCE_TYPE_BIGQUERY,
                 consts.PROJECT_ID: "project",
                 consts.TABLE_ID: "dataset.table",
             },
@@ -525,7 +597,7 @@ def test_get_arg_list(test_input, expected):
         (
             "project.data.data.table",
             {
-                "type": "BigQuery",
+                consts.RH_TYPE: consts.SOURCE_TYPE_BIGQUERY,
                 consts.PROJECT_ID: "project",
                 consts.TABLE_ID: "data.data.table",
             },
@@ -534,7 +606,7 @@ def test_get_arg_list(test_input, expected):
 )
 def test_get_result_handler_by_project(test_input, expected):
     """Test get result handler config dictionary for project.dataset.table format."""
-    res = cli_tools.get_result_handler(test_input)
+    res = cli_tools._get_result_handler(test_input)
     assert res == expected
 
 
@@ -547,31 +619,34 @@ def test_get_result_handler_by_conn_file(fs):
     cli_tools.store_connection(args.connection_name, conn)
 
     # Now check we can use it.
-    res = cli_tools.get_result_handler(f"{args.connection_name}.dataset.table")
+    res = cli_tools._get_result_handler(f"{args.connection_name}.dataset.table")
     assert res == {
-        "type": "BigQuery",
+        consts.RH_TYPE: consts.SOURCE_TYPE_BIGQUERY,
         consts.PROJECT_ID: args.project_id,
         consts.TABLE_ID: "dataset.table",
         consts.API_ENDPOINT: args.api_endpoint,
     }
 
     # Plus check standard format still works.
-    res = cli_tools.get_result_handler("project.dataset.table")
+    res = cli_tools._get_result_handler("project.dataset.table")
     assert res == {
-        "type": "BigQuery",
+        consts.RH_TYPE: consts.SOURCE_TYPE_BIGQUERY,
         consts.PROJECT_ID: "project",
         consts.TABLE_ID: "dataset.table",
     }
 
 
+@pytest.mark.timeout(10)
 @pytest.mark.parametrize(
     "test_input,expected",
     [
-        (
-            "id < 5:row_id <5",
-            [{"type": "custom", "source": "id < 5", "target": "row_id <5"}],
-        ),
+        # Simple filters.
         ("id < 5", [{"type": "custom", "source": "id < 5", "target": "id < 5"}]),
+        ("id > 5", [{"type": "custom", "source": "id > 5", "target": "id > 5"}]),
+        (
+            "id = 'abc'",
+            [{"type": "custom", "source": "id = 'abc'", "target": "id = 'abc'"}],
+        ),
         (
             "name != 'John'",
             [
@@ -582,6 +657,7 @@ def test_get_result_handler_by_conn_file(fs):
                 }
             ],
         ),
+        # With an escaped single quote.
         (
             "name != 'St. John''s'",
             [
@@ -592,20 +668,99 @@ def test_get_result_handler_by_conn_file(fs):
                 }
             ],
         ),
+        # Filter pairs.
         (
-            "mod_timestamp >= '2024-04-01 16:00:00 UTC':mod_timestamp >= '2020-04-01 16:00:00 UTC'",
+            "id < 5:row_id <5",
+            [{"type": "custom", "source": "id < 5", "target": "row_id <5"}],
+        ),
+        (
+            "id = 'abc':row_id='abc'",
+            [{"type": "custom", "source": "id = 'abc'", "target": "row_id='abc'"}],
+        ),
+        # Really long filters.
+        (
+            "id12345678901234567890 = 'abcdefghijklmnopqrstuvwxyz'",
             [
                 {
                     "type": "custom",
-                    "source": "mod_timestamp >= '2024-04-01 16:00:00 UTC'",
-                    "target": "mod_timestamp >= '2020-04-01 16:00:00 UTC'",
+                    "source": "id12345678901234567890 = 'abcdefghijklmnopqrstuvwxyz'",
+                    "target": "id12345678901234567890 = 'abcdefghijklmnopqrstuvwxyz'",
+                }
+            ],
+        ),
+        (
+            "id12345678901234567890=12345678901234567890:row_id12345678901234567890=12345678901234567890",
+            [
+                {
+                    "type": "custom",
+                    "source": "id12345678901234567890=12345678901234567890",
+                    "target": "row_id12345678901234567890=12345678901234567890",
                 }
             ],
         ),
     ],
 )
-def test_get_filters(test_input, expected):
+def test_get_filters_simple(test_input: str, expected: list):
     """Test get filters."""
+    res = cli_tools.get_filters(test_input)
+    assert res == expected
+
+
+@pytest.mark.parametrize(
+    "test_input",
+    [
+        (""),
+        ("  "),
+        (":"),
+        (" : "),
+    ],
+)
+def test_get_filters_fail(test_input: str):
+    """Test get filters."""
+    with pytest.raises(argparse.ArgumentTypeError):
+        _ = cli_tools.get_filters(test_input)
+
+
+@pytest.mark.parametrize(
+    "test_input,expected",
+    [
+        # Timestamp related characters.
+        (
+            "col_ts >= '2024-04-01 16:00:00 UTC'",
+            [
+                {
+                    "type": "custom",
+                    "source": "col_ts >= '2024-04-01 16:00:00 UTC'",
+                    "target": "col_ts >= '2024-04-01 16:00:00 UTC'",
+                }
+            ],
+        ),
+        # Timestamp related characters with a filter pair colon.
+        (
+            "col_ts >= '2024-04-01 16:00:00 UTC':col_ts >= '2020-04-01 16.00.00 +00:00'",
+            [
+                {
+                    "type": "custom",
+                    "source": "col_ts >= '2024-04-01 16:00:00 UTC'",
+                    "target": "col_ts >= '2020-04-01 16.00.00 +00:00'",
+                }
+            ],
+        ),
+        # Timestamp with greater-than, less-than and parentheses.
+        (
+            "col_ts >= to_timestamp('2024-04-01 16:00:00','YYYY-MM-DD HH24:MI:SS') and col_ts < to_timestamp('2024-04-01 16:00:00','YYYY-MM-DD HH24:MI:SS')",
+            [
+                {
+                    "type": "custom",
+                    "source": "col_ts >= to_timestamp('2024-04-01 16:00:00','YYYY-MM-DD HH24:MI:SS') and col_ts < to_timestamp('2024-04-01 16:00:00','YYYY-MM-DD HH24:MI:SS')",
+                    "target": "col_ts >= to_timestamp('2024-04-01 16:00:00','YYYY-MM-DD HH24:MI:SS') and col_ts < to_timestamp('2024-04-01 16:00:00','YYYY-MM-DD HH24:MI:SS')",
+                }
+            ],
+        ),
+    ],
+)
+def test_get_filters_datetimes(test_input, expected):
+    """Test get filters with timestamps."""
     res = cli_tools.get_filters(test_input)
     assert res == expected
 
@@ -643,7 +798,7 @@ def test_split_table_no_schema():
 
 @pytest.mark.parametrize(
     "test_input",
-    [(["table"])],
+    [["table"]],
 )
 def test_split_table_err(
     test_input,
@@ -833,3 +988,42 @@ def test_arg_parser_generate_table_partitions_help(capsys):
         _ = parser.parse_args(["generate-table-partitions", "--help"])
     captured = capsys.readouterr()
     assert "--partition-num" in captured.out
+
+
+@pytest.mark.parametrize(
+    "test_input",
+    [
+        (1),
+        (100),
+        (99999),
+    ],
+)
+def test_check_positive_pass(test_input: int):
+    """Test _check_positive."""
+    _ = cli_tools._check_positive(test_input)
+
+
+@pytest.mark.parametrize(
+    "test_input",
+    [
+        (-1),
+        (0),
+        (-99999),
+    ],
+)
+def test_check_positive_fail(test_input: int):
+    """Test _check_positive."""
+    with pytest.raises(argparse.ArgumentTypeError):
+        _ = cli_tools._check_positive(test_input)
+
+
+@pytest.mark.parametrize(
+    "test_input",
+    [
+        (0),
+    ],
+)
+def test_check_gt_one_fail(test_input: int):
+    """Test _check_positive."""
+    with pytest.raises(argparse.ArgumentTypeError):
+        _ = cli_tools._check_gt_one(test_input)

@@ -31,14 +31,14 @@ STRING_CONSTANT = "constant"
 RANDOM_STRINGS = ["a", "b", "c", "d"]
 
 SOURCE_CONN_CONFIG = {
-    "source_type": "FileSystem",
+    consts.SOURCE_TYPE: consts.SOURCE_TYPE_FILESYSTEM,
     "table_name": "my_table",
     "file_path": SOURCE_TABLE_FILE_PATH,
     "file_type": "json",
 }
 
 TARGET_CONN_CONFIG = {
-    "source_type": "FileSystem",
+    consts.SOURCE_TYPE: consts.SOURCE_TYPE_FILESYSTEM,
     "table_name": "my_table",
     "file_path": TARGET_TABLE_FILE_PATH,
     "file_type": "json",
@@ -155,7 +155,7 @@ YAML_CONFIGS_LIST = [
                                     "cast": None,
                                 },
                             ],
-                            "format": "table",
+                            "format": consts.FORMAT_TYPE_TABLE,
                             "filter_status": None,
                             "filters": [
                                 {
@@ -193,7 +193,7 @@ YAML_CONFIGS_LIST = [
                                     "cast": None,
                                 },
                             ],
-                            "format": "table",
+                            "format": consts.FORMAT_TYPE_TABLE,
                             "filter_status": None,
                             "filters": [
                                 {
@@ -231,7 +231,7 @@ YAML_CONFIGS_LIST = [
                                     "cast": None,
                                 },
                             ],
-                            "format": "table",
+                            "format": consts.FORMAT_TYPE_TABLE,
                             "filter_status": None,
                             "filters": [
                                 {
@@ -269,7 +269,7 @@ YAML_CONFIGS_LIST = [
                                     "cast": None,
                                 },
                             ],
-                            "format": "table",
+                            "format": consts.FORMAT_TYPE_TABLE,
                             "filter_status": None,
                             "filters": [
                                 {
@@ -307,7 +307,7 @@ YAML_CONFIGS_LIST = [
                                     "cast": None,
                                 },
                             ],
-                            "format": "table",
+                            "format": consts.FORMAT_TYPE_TABLE,
                             "filter_status": None,
                             "filters": [
                                 {
@@ -355,7 +355,7 @@ YAML_CONFIGS_LIST = [
                                     "cast": None,
                                 },
                             ],
-                            "format": "table",
+                            "format": consts.FORMAT_TYPE_TABLE,
                             "filter_status": None,
                             "filters": [
                                 {
@@ -393,7 +393,7 @@ YAML_CONFIGS_LIST = [
                                     "cast": None,
                                 },
                             ],
-                            "format": "table",
+                            "format": consts.FORMAT_TYPE_TABLE,
                             "filter_status": None,
                             "filters": [
                                 {
@@ -431,7 +431,7 @@ YAML_CONFIGS_LIST = [
                                     "cast": None,
                                 },
                             ],
-                            "format": "table",
+                            "format": consts.FORMAT_TYPE_TABLE,
                             "filter_status": None,
                             "filters": [
                                 {
@@ -469,7 +469,7 @@ YAML_CONFIGS_LIST = [
                                     "cast": None,
                                 },
                             ],
-                            "format": "table",
+                            "format": consts.FORMAT_TYPE_TABLE,
                             "filter_status": None,
                             "filters": [
                                 {
@@ -572,7 +572,7 @@ def _generate_config_manager(table_name: str = "my_table") -> ConfigManager:
             },
         ],
         consts.CONFIG_RESULT_HANDLER: None,
-        consts.CONFIG_FORMAT: "table",
+        consts.CONFIG_FORMAT: consts.FORMAT_TYPE_TABLE,
         consts.CONFIG_FILTER_STATUS: None,
         consts.CONFIG_FILTERS: [],
     }

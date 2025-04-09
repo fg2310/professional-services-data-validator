@@ -20,7 +20,7 @@ The Data Validator can be called either using:
 
 ex.
 Step 1) Store Connection to be used in validation
-data-validation connections add -c my_bq_conn BigQuery --project-id pso-kokoro-resources
+data-validation connections add -c my_bq_conn BigQuery --project-id pso-project
 
 Step 2) Run Validation using supplied connections
 data-validation validate column -sc my_bq_conn -tc my_bq_conn \
@@ -36,7 +36,7 @@ data-validation validate column \
 -sc my_bq_conn -tc my_bq_conn \
 -tbls bigquery-public-data.new_york_citibike.citibike_trips,bigquery-public-data.new_york_citibike.citibike_stations \
 --sum tripduration,start_station_name --count tripduration,start_station_name \
--bqrh pso-kokoro-resources.pso_data_validator.results
+-rh pso-project.pso_data_validator.results \
 -c ex_yaml.yaml
 
 command:
@@ -52,17 +52,26 @@ import sys
 import uuid
 import os
 import math
-import re
-from argparse import Namespace
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, TYPE_CHECKING
 from yaml import Dumper, Loader, dump, load
 
-from data_validation import clients, consts, find_tables, state_manager, gcs_helper
+from data_validation import (
+    clients,
+    consts,
+    exceptions,
+    find_tables,
+    state_manager,
+    gcs_helper,
+    util,
+)
 from data_validation.validation_builder import list_to_sublists
+
+if TYPE_CHECKING:
+    from argparse import Namespace
 
 
 CONNECTION_SOURCE_FIELDS = {
-    "BigQuery": [
+    consts.SOURCE_TYPE_BIGQUERY: [
         ["project_id", "GCP Project to use for BigQuery"],
         ["google_service_account_key_path", "(Optional) GCP SA Key Path"],
         [
@@ -70,7 +79,7 @@ CONNECTION_SOURCE_FIELDS = {
             '(Optional) GCP BigQuery API endpoint (e.g. "https://mybq.p.googleapis.com")',
         ],
     ],
-    "Teradata": [
+    consts.SOURCE_TYPE_TERADATA: [
         ["host", "Desired Teradata host"],
         ["port", "Teradata port to connect on"],
         ["user_name", "User used to connect"],
@@ -79,7 +88,7 @@ CONNECTION_SOURCE_FIELDS = {
         ["use_no_lock_tables", "Use an access lock for queries (defaults to False)"],
         ["json_params", "(Optional) Additional teradatasql JSON string parameters"],
     ],
-    "Oracle": [
+    consts.SOURCE_TYPE_ORACLE: [
         ["host", "Desired Oracle host"],
         ["port", "Oracle port to connect on"],
         ["user", "User used to connect"],
@@ -87,7 +96,7 @@ CONNECTION_SOURCE_FIELDS = {
         ["database", "Database to connect to"],
         ["url", "Oracle SQLAlchemy connection URL"],
     ],
-    "MSSQL": [
+    consts.SOURCE_TYPE_MSSQL: [
         ["host", "Desired SQL Server host (default localhost)"],
         ["port", "SQL Server port to connect on (default 1433)"],
         ["user", "User used to connect"],
@@ -96,35 +105,35 @@ CONNECTION_SOURCE_FIELDS = {
         ["query", "Connection query parameters"],
         ["url", "SQL Server SQLAlchemy connection URL"],
     ],
-    "MySQL": [
+    consts.SOURCE_TYPE_MYSQL: [
         ["host", "Desired MySQL host (default localhost)"],
         ["port", "MySQL port to connect on (default 3306)"],
         ["user", "User used to connect"],
         ["password", "Password for supplied user"],
         ["database", "Database to connect to (default master)"],
     ],
-    "Snowflake": [
+    consts.SOURCE_TYPE_SNOWFLAKE: [
         ["user", "Username to connect to"],
         ["password", "Password for authentication of user"],
         ["account", "Snowflake account to connect to"],
         ["database", "Database in snowflake to connect to"],
         ["connect_args", "(Optional) Additional connection arg mapping"],
     ],
-    "Postgres": [
+    consts.SOURCE_TYPE_POSTGRES: [
         ["host", "Desired PostgreSQL host."],
         ["port", "PostgreSQL port to connect on (e.g. 5432)"],
         ["user", "Username to connect to"],
         ["password", "Password for authentication of user"],
         ["database", "Database in PostgreSQL to connect to (default postgres)"],
     ],
-    "Redshift": [
+    consts.SOURCE_TYPE_REDSHIFT: [
         ["host", "Desired Redshift host."],
         ["port", "Redshift port to connect on (e.g. 5439)"],
         ["user", "Username to connect to"],
         ["password", "Password for authentication of user"],
         ["database", "Database in Redshift to connect to"],
     ],
-    "Spanner": [
+    consts.SOURCE_TYPE_SPANNER: [
         ["project_id", "GCP Project to use for Spanner"],
         ["instance_id", "ID of Spanner instance to connect to"],
         ["database_id", "ID of Spanner database (schema) to connect to"],
@@ -134,12 +143,12 @@ CONNECTION_SOURCE_FIELDS = {
             '(Optional) GCP Spanner API endpoint (e.g. "https://mycs.p.googleapis.com")',
         ],
     ],
-    "FileSystem": [
+    consts.SOURCE_TYPE_FILESYSTEM: [
         ["table_name", "Table name to use as reference for file data"],
         ["file_path", "The local, s3, or GCS file path to the data"],
         ["file_type", "The file type of the file. 'csv', 'orc', 'parquet' or 'json'"],
     ],
-    "Impala": [
+    consts.SOURCE_TYPE_IMPALA: [
         ["host", "Desired Impala host"],
         ["port", "Desired Impala port (10000 if not provided)"],
         ["database", "Desired Impala database (default if not provided)"],
@@ -167,7 +176,7 @@ CONNECTION_SOURCE_FIELDS = {
         ["use_http_transport", "Boolean if HTTP proxy is provided (default is False)"],
         ["http_path", "URL path of HTTP proxy"],
     ],
-    "DB2": [
+    consts.SOURCE_TYPE_DB2: [
         ["host", "Desired DB2 host"],
         ["port", "Desired DB2 port (50000 if not provided)"],
         ["user", "Username to connect to"],
@@ -185,7 +194,7 @@ VALIDATE_SCHEMA_HELP_TEXT = "Run a schema validation"
 VALIDATE_CUSTOM_QUERY_HELP_TEXT = "Run a custom query validation"
 
 
-def _check_custom_query_args(parser: argparse.ArgumentParser, parsed_args: Namespace):
+def _check_custom_query_args(parser: argparse.ArgumentParser, parsed_args: "Namespace"):
     # This is where we make additional checks if the arguments provided are what we expect
     # For example, only one of -tbls and custom query options can be provided
     if hasattr(parsed_args, "tables_list") and hasattr(
@@ -217,7 +226,7 @@ def _check_custom_query_args(parser: argparse.ArgumentParser, parsed_args: Names
         return  # old format - only one of them is present
 
 
-def get_parsed_args() -> Namespace:
+def get_parsed_args() -> "Namespace":
     """Return ArgParser with configured CLI arguments."""
     parser = configure_arg_parser()
     args = ["--help"] if len(sys.argv) == 1 else None
@@ -289,7 +298,7 @@ def _configure_partition_parser(subparsers):
         "-pn",
         required=True,
         help="Number of partitions into which the table should be split",
-        type=_check_positive,
+        type=_check_gt_one,
     )
     # User can provide tables or custom queries, but not both
     # However, Argparse does not support adding an argument_group to an argument_group or adding a
@@ -387,6 +396,14 @@ def _configure_raw_query(subparsers):
     )
     query_parser.add_argument("--conn", "-c", help="Connection name to query")
     query_parser.add_argument("--query", "-q", help="Raw query to execute")
+    query_parser.add_argument(
+        "--format",
+        "-f",
+        dest="output_format",
+        choices=consts.RAW_QUERY_FORMAT_TYPES,
+        default=consts.FORMAT_TYPE_PYTHON,
+        help=f"Format for query output (default: {consts.FORMAT_TYPE_PYTHON})",
+    )
 
 
 def _configure_validation_config_parser(subparsers):
@@ -996,7 +1013,15 @@ def _add_common_arguments(
 
     # Optional arguments
     optional_arguments.add_argument(
-        "--bq-result-handler", "-bqrh", help="BigQuery result handler config details"
+        "--bq-result-handler", "-bqrh", help=argparse.SUPPRESS
+    )
+    optional_arguments.add_argument(
+        "--result-handler",
+        "-rh",
+        help=(
+            "Result handler connection details. "
+            "CONNECTION_NAME.SCHEMA.TABLE or BQ_PROJECT_ID.DATASET.TABLE."
+        ),
     )
     optional_arguments.add_argument(
         "--labels", "-l", help="Key value pair labels for validation run"
@@ -1021,7 +1046,7 @@ def _add_common_arguments(
     optional_arguments.add_argument(
         "--format",
         "-fmt",
-        default="table",
+        default=consts.FORMAT_TYPE_TABLE,
         help="Set the format for printing command output, Supported formats are (text, csv, json, table). Defaults "
         "to table",
     )
@@ -1039,11 +1064,20 @@ def _add_common_arguments(
     )
 
 
-def _check_positive(value: int) -> int:
+def _check_positive(value: int, lower_bound: int = 1) -> int:
     ivalue = int(value)
-    if ivalue <= 0:
-        raise argparse.ArgumentTypeError("%s is an invalid positive int value" % value)
+    if ivalue < lower_bound:
+        if lower_bound == 1:
+            raise argparse.ArgumentTypeError(
+                f"{value} is an invalid positive int value"
+            )
+        else:
+            raise argparse.ArgumentTypeError(f"Value must be >= {lower_bound}: {value}")
     return ivalue
+
+
+def _check_gt_one(value: int) -> int:
+    return _check_positive(value, lower_bound=2)
 
 
 def check_no_yaml_files(partition_num: int, parts_per_file: int):
@@ -1202,35 +1236,33 @@ def get_filters(filter_value: str) -> List[Dict]:
     If only one filter is specified, it applies to both source and target
     For a doc on regular expression for filters see docs/internal/filters_regex.md
     """
-
-    single_filter = r"([^':]*('[^']*')*)*"
-    double_filter = (
-        r"(?P<source>" + single_filter + r"):(?P<target>" + single_filter + r")"
-    )
-    filter_config = []
-    if result := re.fullmatch(single_filter, filter_value):
-        if result.group(0) == "":
-            raise argparse.ArgumentTypeError("Empty string not allowed in filter")
-        filter_dict = {
-            "type": "custom",
-            "source": result.group(0),
-            "target": result.group(0),
-        }
-    elif result := re.fullmatch(double_filter, filter_value):
-        if result.group("source") == "" or result.group("target") == "":
-            raise argparse.ArgumentTypeError("Empty string not allowed in filter")
-        filter_dict = {
-            "type": "custom",
-            "source": result.group("source"),
-            "target": result.group("target"),
-        }
-    else:
+    filters = util.split_not_in_quotes(filter_value, ":")
+    if len(filters) not in (1, 2):
         raise argparse.ArgumentTypeError("Unable to parse filter arguments.")
-    filter_config.append(filter_dict)
+    filters = [_.strip() for _ in filters]
+    if len(filters) == 1:
+        if not filters[0]:
+            raise argparse.ArgumentTypeError("Empty string not allowed in filter")
+        filter_dict = {
+            "type": "custom",
+            "source": filters[0],
+            "target": filters[0],
+        }
+    elif len(filters) == 2:
+        if not filters[0] or not filters[1]:
+            raise argparse.ArgumentTypeError("Empty string not allowed in filter")
+        filter_dict = {
+            "type": "custom",
+            "source": filters[0],
+            "target": filters[1],
+        }
+    filter_config = [
+        filter_dict,
+    ]
     return filter_config
 
 
-def get_result_handler(rc_value: str, sa_file=None) -> dict:
+def _get_result_handler(rc_value: str, sa_file=None) -> dict:
     """Returns dict of result handler config. Backwards compatible for JSON input.
 
     rc_value (str): Result config argument specified.
@@ -1240,22 +1272,34 @@ def get_result_handler(rc_value: str, sa_file=None) -> dict:
     if len(config) != 2:
         raise ValueError(f"Unable to parse result handler config: `{rc_value}`")
 
-    # Check if the first part of the BQRH is a connection name.
+    # Check if the first part of the result handler is a connection name.
     mgr = state_manager.StateManager()
     connections = mgr.list_connections()
     if config[0] in connections:
-        # We received connection_name.bq_results_table
+        # We received connection_name.results_table.
         conn_from_file = get_connection(config[0])
-        result_handler = {
-            "type": "BigQuery",
-            consts.PROJECT_ID: conn_from_file["project_id"],
-            consts.TABLE_ID: config[1],
-            consts.API_ENDPOINT: conn_from_file.get("api_endpoint", None),
-        }
+        if conn_from_file[consts.SOURCE_TYPE] == consts.SOURCE_TYPE_BIGQUERY:
+            result_handler = {
+                consts.RH_TYPE: conn_from_file[consts.SOURCE_TYPE],
+                consts.PROJECT_ID: conn_from_file["project_id"],
+                consts.TABLE_ID: config[1],
+                consts.API_ENDPOINT: conn_from_file.get("api_endpoint", None),
+            }
+        elif conn_from_file[consts.SOURCE_TYPE] == consts.SOURCE_TYPE_POSTGRES:
+            result_handler = {
+                consts.RH_TYPE: conn_from_file[consts.SOURCE_TYPE],
+                consts.TABLE_ID: config[1],
+                consts.RH_CONN: conn_from_file,
+            }
+        # TODO Add filesytem handler too.
+        else:
+            raise exceptions.ResultHandlerException(
+                f"Unsupported result handler connection type: {conn_from_file[consts.SOURCE_TYPE]}"
+            )
     else:
-        # We received project_name.bq_results_table
+        # We received legacy format "bq-project-name.bq_results_table".
         result_handler = {
-            "type": "BigQuery",
+            consts.RH_TYPE: consts.SOURCE_TYPE_BIGQUERY,
             consts.PROJECT_ID: config[0],
             consts.TABLE_ID: config[1],
         }
@@ -1439,7 +1483,7 @@ def _concat_column_count_configs(
     return return_list
 
 
-def get_pre_build_configs(args: Namespace, validate_cmd: str) -> List[Dict]:
+def get_pre_build_configs(args: "Namespace", validate_cmd: str) -> List[Dict]:
     """Return a dict of configurations to build ConfigManager object"""
 
     def cols_from_arg(concat_arg: str, client, table_obj: dict, query_str: str) -> list:
@@ -1475,10 +1519,12 @@ def get_pre_build_configs(args: Namespace, validate_cmd: str) -> List[Dict]:
     else:
         raise ValueError(f"Unknown Validation Type: {validate_cmd}")
 
+    # Cater for legacy -bqrh.
+    args.result_handler = args.result_handler or args.bq_result_handler
     # Get result handler config
-    if args.bq_result_handler:
-        result_handler_config = get_result_handler(
-            args.bq_result_handler, args.service_account
+    if args.result_handler:
+        result_handler_config = _get_result_handler(
+            args.result_handler, args.service_account
         )
     else:
         result_handler_config = None
@@ -1499,7 +1545,7 @@ def get_pre_build_configs(args: Namespace, validate_cmd: str) -> List[Dict]:
     target_client = clients.get_data_client(mgr.get_connection_config(args.target_conn))
 
     # Get format: text, csv, json, table. Default is table
-    format = args.format if args.format else "table"
+    format = args.format if args.format else consts.FORMAT_TYPE_TABLE
 
     # Get random row arguments. Only in row validations these attributes can be present.
     # Bad coding here, but keeping it so as not to introduce a breaking change. See

@@ -22,6 +22,7 @@ from data_validation import cli_tools, data_validation, consts
 from tests.system.data_sources.common_functions import (
     binary_key_assertions,
     find_tables_test,
+    id_column_row_validation_test,
     id_type_test_assertions,
     null_not_null_assertions,
     raw_query_test,
@@ -44,7 +45,7 @@ SNOWFLAKE_PASSWORD = os.getenv("SNOWFLAKE_PASSWORD")
 SNOWFLAKE_DATABASE = os.getenv("SNOWFLAKE_DATABASE", "pso_data_validator/public")
 
 CONN = {
-    "source_type": "Snowflake",
+    consts.SOURCE_TYPE: consts.SOURCE_TYPE_SNOWFLAKE,
     "account": SNOWFLAKE_ACCOUNT,
     "user": SNOWFLAKE_USER,
     "password": SNOWFLAKE_PASSWORD,
@@ -68,7 +69,7 @@ SNOWFLAKE_CONFIG = {
             consts.CONFIG_FIELD_ALIAS: "count",
         },
     ],
-    consts.CONFIG_FORMAT: "table",
+    consts.CONFIG_FORMAT: consts.FORMAT_TYPE_TABLE,
     consts.CONFIG_FILTER_STATUS: None,
 }
 
@@ -77,7 +78,7 @@ def test_count_validator():
     validator = data_validation.DataValidation(SNOWFLAKE_CONFIG, verbose=True)
     df = validator.execute()
     assert int(df["source_agg_value"][0]) > 0
-    assert df["source_agg_value"][0] == df["target_agg_value"][0]
+    assert df["source_agg_value"][0] == df[consts.TARGET_AGG_VALUE][0]
 
 
 def mock_get_connection_config(*args):
@@ -303,8 +304,8 @@ def test_column_validation_large_decimals_to_bigquery_mismatch():
         expected_rows=2,
     )
     # The columns below have mismatching data and should be in the Dataframe.
-    assert "sum__col_dec_18_fail" in df["validation_name"].values
-    assert "sum__col_dec_18_1_fail" in df["validation_name"].values
+    assert "sum__col_dec_18_fail" in df[consts.VALIDATION_NAME].values
+    assert "sum__col_dec_18_1_fail" in df[consts.VALIDATION_NAME].values
 
 
 @mock.patch(
@@ -382,9 +383,7 @@ def test_row_validation_binary_pk_to_bigquery():
     new=mock_get_connection_config,
 )
 def test_row_validation_char_pk_to_bigquery():
-    """Snowflake to BigQuery dvt_char_id row validation - not executed.
-    This is testing CHAR primary key join columns.
-    Includes random row filter test.
+    """Test padded char primary key join columns.
 
     Snowflake currently deviates from common CHAR semantics in that strings
     shorter than the maximum length are not space-padded at the end.
@@ -393,22 +392,24 @@ def test_row_validation_char_pk_to_bigquery():
     pytest.skip(
         "Skipping test_row_validation_char_pk_to_bigquery because of Snowflake CHAR semantics"
     )
-    parser = cli_tools.configure_arg_parser()
-    args = parser.parse_args(
-        [
-            "validate",
-            "row",
-            "-sc=snowflake-conn",
-            "-tc=bq-conn",
-            "-tbls=PSO_DATA_VALIDATOR.PUBLIC.DVT_CHAR_ID=pso_data_validator.dvt_char_id",
-            "--primary-keys=id",
-            "--hash=id,other_data",
-            "--use-random-row",
-            "--random-row-batch-size=5",
-        ]
+    # TODO Remove use_randow_row option below when issue-1445 is actioned.
+    id_column_row_validation_test(
+        "PSO_DATA_VALIDATOR.PUBLIC.DVT_CHAR_ID=pso_data_validator.dvt_char_id",
+        use_randow_row=False,
     )
-    df = run_test_from_cli_args(args)
-    id_type_test_assertions(df)
+
+
+@mock.patch(
+    "data_validation.state_manager.StateManager.get_connection_config",
+    new=mock_get_connection_config,
+)
+def test_row_validation_datetime_pk_to_bigquery():
+    """Test datetime primary key join columns"""
+    # TODO Remove use_randow_row option below when issue-1445 is actioned.
+    id_column_row_validation_test(
+        "PSO_DATA_VALIDATOR.PUBLIC.DVT_DATETIME_ID=pso_data_validator.dvt_datetime_id",
+        use_randow_row=False,
+    )
 
 
 @mock.patch(
@@ -459,6 +460,19 @@ def test_row_validation_tricky_dates_to_bigquery():
     """Test with date values that are at the extremes, e.g. 9999-12-31."""
     row_validation_test(
         tables="PSO_DATA_VALIDATOR.PUBLIC.DVT_TRICKY_DATES=pso_data_validator.dvt_tricky_dates",
+        tc="bq-conn",
+        hash="*",
+    )
+
+
+@mock.patch(
+    "data_validation.state_manager.StateManager.get_connection_config",
+    new=mock_get_connection_config,
+)
+def test_row_validation_tricky_strings_to_bigquery():
+    """Test with string values containing special characters."""
+    row_validation_test(
+        tables="PSO_DATA_VALIDATOR.PUBLIC.DVT_TRICKY_STRINGS=pso_data_validator.dvt_tricky_strings",
         tc="bq-conn",
         hash="*",
     )
@@ -554,6 +568,57 @@ def test_row_validation_identifiers():
         tables="PSO_DATA_VALIDATOR.PUBLIC.DVT-IDENTIFIER$_#",
         tc="mock-conn",
         hash="*",
+    )
+
+
+@mock.patch(
+    "data_validation.state_manager.StateManager.get_connection_config",
+    new=mock_get_connection_config,
+)
+def test_schema_validation_reserved_words():
+    """Test schema validation on a table with reserved words in column names."""
+    schema_validation_test(
+        tables="PSO_DATA_VALIDATOR.PUBLIC.DVT_RESERVED_WORD_COLUMNS",
+        tc="mock-conn",
+    )
+
+
+@mock.patch(
+    "data_validation.state_manager.StateManager.get_connection_config",
+    new=mock_get_connection_config,
+)
+def test_column_validation_reserved_words():
+    """Test column validation on a table with reserved words in column names."""
+    column_validation_test(
+        tc="mock-conn",
+        tables="PSO_DATA_VALIDATOR.PUBLIC.DVT_RESERVED_WORD_COLUMNS",
+        count_cols="*",
+    )
+
+
+@mock.patch(
+    "data_validation.state_manager.StateManager.get_connection_config",
+    new=mock_get_connection_config,
+)
+def test_row_validation_reserved_words():
+    """Test row validation on a table with reserved words in column names."""
+    row_validation_test(
+        tables="PSO_DATA_VALIDATOR.PUBLIC.DVT_RESERVED_WORD_COLUMNS",
+        tc="mock-conn",
+        hash="*",
+    )
+
+
+@mock.patch(
+    "data_validation.state_manager.StateManager.get_connection_config",
+    new=mock_get_connection_config,
+)
+def test_row_validation_comp_fields_reserved_words():
+    """Test row validation on a table with reserved words in column names."""
+    row_validation_test(
+        tables="PSO_DATA_VALIDATOR.PUBLIC.DVT_RESERVED_WORD_COLUMNS",
+        tc="mock-conn",
+        comp_fields="*",
     )
 
 
