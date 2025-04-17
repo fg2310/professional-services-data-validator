@@ -190,6 +190,7 @@ class PartitionBuilder:
             target_unq_row_num = target_ext_unq.mutate(
                 target_ext_unq.dvt_one.sum().over(target_win).name(consts.DVT_POS_COL)
             )[target_pks + [consts.DVT_POS_COL]]
+            logging.debug(f"Example query used to calculate row count:{util.ibis_table_to_sql(source_row_num[consts.DVT_POS_COL].max())}")
             source_count = source_row_num[consts.DVT_POS_COL].max().execute()
             target_count = target_row_num[consts.DVT_POS_COL].max().execute()
             source_unq_count = source_unq_row_num[consts.DVT_POS_COL].max().execute()
@@ -271,6 +272,7 @@ class PartitionBuilder:
                 )
             )
             first_keys_table = source_row_num[cond].order_by(source_pks)
+            logging.debug(f"Query to find keys to partition: {util.ibis_table_to_sql(first_keys_table)}")
 
             # Up until this point, we have built the table expression, have not executed the query yet.
             # The query is now executed to find the first element of each partition
