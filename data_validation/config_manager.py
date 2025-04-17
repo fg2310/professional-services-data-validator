@@ -16,19 +16,17 @@ import copy
 import logging
 import string
 import random
-from typing import TYPE_CHECKING, Optional, Union, List, Dict
+from typing import TYPE_CHECKING, Dict, List, Optional, Union, Tuple
 
-import google.oauth2.service_account
 import ibis.expr.datatypes as dt
 import yaml
 
 from data_validation import clients, consts, gcs_helper, state_manager
-from data_validation.result_handlers.bigquery import BigQueryResultHandler
-from data_validation.result_handlers.text import TextResultHandler
+from data_validation.result_handlers.factory import build_result_handler
 from data_validation.validation_builder import ValidationBuilder
 
 if TYPE_CHECKING:
-    import ibis.expr.types.TableExpr
+    import ibis.expr.types.Table
 
 
 class ConfigManager(object):
@@ -66,6 +64,9 @@ class ConfigManager(object):
         if self.validation_type not in consts.CONFIG_TYPES:
             raise ValueError(f"Unknown Configuration Type: {self.validation_type}")
         self._comparison_max_col_length = None
+        # For some engines we need to know the actual raw data type rather than the Ibis canonical type.
+        self._source_raw_data_types = None
+        self._target_raw_data_types = None
 
     @property
     def config(self):
@@ -93,6 +94,50 @@ class ConfigManager(object):
                 self._target_conn = self._state_manager.get_connection_config(conn_name)
 
         return self._target_conn
+
+    def get_source_raw_data_types(self) -> Dict[str, Tuple]:
+        """Return raw data type information from source system.
+
+        The raw data type is the source/target engine type, for example it might
+        be "NCLOB" or "char" when the Ibis type simply states "string".
+        The data is cached in state when fetched for the first time.
+        The retuen value is keyed on the casefolded column name and the tuple is
+        the remaining 6 elements of the DB API cursor description specification."""
+        if self._source_raw_data_types is None:
+            if hasattr(self.source_client, "raw_column_metadata"):
+                raw_data_types = self.source_client.raw_column_metadata(
+                    database=self.source_schema,
+                    table=self.source_table,
+                    query=self.source_query,
+                )
+                self._source_raw_data_types = {
+                    _[0].casefold(): _[1:] for _ in raw_data_types
+                }
+            else:
+                self._source_raw_data_types = {}
+        return self._source_raw_data_types
+
+    def get_target_raw_data_types(self) -> Dict[str, Tuple]:
+        """Return raw data type information from target system.
+
+        The raw data type is the source/target engine type, for example it might
+        be "NCLOB" or "char" when the Ibis type simply states "string".
+        The data is cached in state when fetched for the first time.
+        The retuen value is keyed on the casefolded column name and the tuple is
+        the remaining 6 elements of the DB API cursor description specification."""
+        if self._target_raw_data_types is None:
+            if hasattr(self.target_client, "raw_column_metadata"):
+                raw_data_types = self.target_client.raw_column_metadata(
+                    database=self.target_schema,
+                    table=self.target_table,
+                    query=self.target_query,
+                )
+                self._target_raw_data_types = {
+                    _[0].casefold(): _[1:] for _ in raw_data_types
+                }
+            else:
+                self._target_raw_data_types = {}
+        return self._target_raw_data_types
 
     def close_client_connections(self):
         """Attempt to clean up any source/target connections, based on the client types.
@@ -137,10 +182,6 @@ class ConfigManager(object):
     def case_insensitive_match(self):
         """Return if the validation should perform a case insensitive match."""
         return self._config.get(consts.CONFIG_CASE_INSENSITIVE_MATCH) or False
-
-    def process_in_memory(self):
-        """Return whether to process in memory or on a remote platform."""
-        return True
 
     @property
     def max_recursive_query_size(self):
@@ -452,44 +493,14 @@ class ConfigManager(object):
 
     def get_result_handler(self):
         """Return ResultHandler instance from supplied config."""
-        if not self.result_handler_config:
-            if self.config[consts.CONFIG_TYPE] == consts.SCHEMA_VALIDATION:
-                cols_filter_list = consts.SCHEMA_VALIDATION_COLUMN_FILTER_LIST
-            else:
-                cols_filter_list = consts.COLUMN_FILTER_LIST
-            # handler that display results either to output or in a file
-            return TextResultHandler(
-                self._config.get(consts.CONFIG_FORMAT, "table"),
-                self.filter_status,
-                cols_filter_list,
-            )
-
-        result_type = self.result_handler_config[consts.CONFIG_TYPE]
-        if result_type == "BigQuery":
-            project_id = self.result_handler_config[consts.PROJECT_ID]
-            table_id = self.result_handler_config[consts.TABLE_ID]
-            key_path = self.result_handler_config.get(
-                consts.GOOGLE_SERVICE_ACCOUNT_KEY_PATH
-            )
-            if key_path:
-                credentials = (
-                    google.oauth2.service_account.Credentials.from_service_account_file(
-                        key_path
-                    )
-                )
-            else:
-                credentials = None
-            api_endpoint = self.result_handler_config.get(consts.API_ENDPOINT)
-            return BigQueryResultHandler.get_handler_for_project(
-                project_id,
-                self.filter_status,
-                table_id=table_id,
-                credentials=credentials,
-                api_endpoint=api_endpoint,
-                text_format=self._config.get(consts.CONFIG_FORMAT, "table"),
-            )
-        else:
-            raise ValueError(f"Unknown ResultHandler Class: {result_type}")
+        return build_result_handler(
+            self.result_handler_config,
+            self.config[consts.CONFIG_TYPE],
+            self.filter_status,
+            text_format=self._config.get(
+                consts.CONFIG_FORMAT, consts.FORMAT_TYPE_TABLE
+            ),
+        )
 
     @staticmethod
     def build_config_manager(
@@ -874,7 +885,7 @@ class ConfigManager(object):
         target_column_ibis_type: dt.DataType,
         margin: int = 0,
     ) -> bool:
-        """Identifies Decimal columns that will cause problems in a Pandas Dataframe.
+        """Identifies numeric columns that will cause problems in a Pandas Dataframe.
 
         i.e. are of greater precision than a 64bit int/real can hold.
 
@@ -883,17 +894,23 @@ class ConfigManager(object):
         """
         return bool(
             (
-                isinstance(source_column_ibis_type, dt.Decimal)
-                and (
-                    source_column_ibis_type.precision is None
-                    or source_column_ibis_type.precision > (18 - margin)
+                (isinstance(source_column_ibis_type, dt.Int64) and margin > 0)
+                or (
+                    isinstance(source_column_ibis_type, dt.Decimal)
+                    and (
+                        source_column_ibis_type.precision is None
+                        or source_column_ibis_type.precision > (18 - margin)
+                    )
                 )
             )
             and (
-                isinstance(target_column_ibis_type, dt.Decimal)
-                and (
-                    target_column_ibis_type.precision is None
-                    or target_column_ibis_type.precision > (18 - margin)
+                (isinstance(target_column_ibis_type, dt.Int64) and margin > 0)
+                or (
+                    isinstance(target_column_ibis_type, dt.Decimal)
+                    and (
+                        target_column_ibis_type.precision is None
+                        or target_column_ibis_type.precision > (18 - margin)
+                    )
                 )
             )
         )
@@ -1117,8 +1134,8 @@ class ConfigManager(object):
         source_column: str,
         target_column: str,
         col_config: dict,
-        source_table: "ibis.expr.types.TableExpr",
-        target_table: "ibis.expr.types.TableExpr",
+        source_table: "ibis.expr.types.Table",
+        target_table: "ibis.expr.types.Table",
     ) -> dict:
         """Mutates col_config to contain any overrides. Also returns col_config for convenience."""
         if col_config["calc_type"] != "cast":

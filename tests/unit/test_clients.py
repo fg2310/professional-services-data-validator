@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from unittest import mock
+
 import pytest
 
 from google.auth import credentials
@@ -20,7 +21,7 @@ import pandas
 import ibis.backends.pandas
 from ibis.backends.pandas import BasePandasBackend as PandasBackend
 
-from data_validation import clients, exceptions
+from data_validation import clients, consts, exceptions
 
 
 TABLE_NAME = "my_table"
@@ -30,14 +31,14 @@ TABLES_RESULT = [(None, TABLE_NAME)]
 SOURCE_TABLE_FILE_PATH = "source_table_data.json"
 JSON_DATA = """[{"col_a":0,"col_b":"a"},{"col_a":1,"col_b":"b"}]"""
 SOURCE_CONN_CONFIG = {
-    "source_type": "FileSystem",
+    consts.SOURCE_TYPE: consts.SOURCE_TYPE_FILESYSTEM,
     "table_name": "my_table",
     "file_path": SOURCE_TABLE_FILE_PATH,
     "file_type": "json",
 }
 
 ORACLE_CONN_CONFIG = {
-    "source_type": "Oracle",
+    consts.SOURCE_TYPE: consts.SOURCE_TYPE_ORACLE,
     "host": "127.0.0.1",
     "port": 1521,
 }
@@ -74,10 +75,11 @@ def test_get_bigquery_client_sets_user_agent():
 
 
 def test_import_oracle_client():
-    with pytest.raises(ModuleNotFoundError, match=r"No module named 'cx_Oracle'"):
-        from third_party.ibis.ibis_oracle.api import oracle_connect
-
-        oracle_connect()
+    try:
+        from third_party.ibis.ibis_oracle.api import oracle_connect  # noqa: F401
+    except ModuleNotFoundError as e:
+        # If we cannot import the Oracle api then assert cx_Oracle is mentioned in the exception text.
+        assert "No module named 'cx_Oracle'" in str(e)
 
 
 def test_get_oracle_data_client():

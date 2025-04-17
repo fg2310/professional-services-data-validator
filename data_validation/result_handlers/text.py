@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-""" A ResultHandler class is supplied to the DataValidation manager class.
+"""A ResultHandler class is supplied to the DataValidation manager class.
 
 The execute function of any result handler is used to process
 the validation results.  It expects to receive the config
@@ -23,7 +23,7 @@ Output validation report to text-based log
 """
 from typing import TYPE_CHECKING
 
-from data_validation import consts
+from data_validation import consts, util
 
 
 if TYPE_CHECKING:
@@ -35,15 +35,17 @@ def filter_validation_status(status_list, result_df: "DataFrame"):
 
 
 def get_formatted(
-    result_df: "DataFrame", format: str = "table", cols_filter_list: list = None
+    result_df: "DataFrame",
+    format: str = consts.FORMAT_TYPE_TABLE,
+    cols_filter_list: list = None,
 ) -> str:
     """Expose formatting logic so it can be used in BigQuery handler."""
     cols_filter_list = cols_filter_list or consts.COLUMN_FILTER_LIST
-    if format == "text":
+    if format == consts.FORMAT_TYPE_TEXT:
         return result_df.drop(cols_filter_list, axis=1).to_string(index=False)
-    elif format == "csv":
+    elif format == consts.FORMAT_TYPE_CSV:
         return result_df.to_csv(index=False, lineterminator="\n")
-    elif format == "json":
+    elif format == consts.FORMAT_TYPE_JSON:
         return result_df.to_json(orient="index")
     else:
         return result_df.drop(cols_filter_list, axis=1).to_markdown(
@@ -82,4 +84,4 @@ class TextResultHandler(object):
         return result_df
 
     def execute(self, result_df) -> str:
-        return self.print_formatted_(result_df)
+        return util.timed_call("Text handler output", self.print_formatted_, result_df)
