@@ -194,7 +194,7 @@ class PartitionBuilder:
             target_count = target_row_num[consts.DVT_POS_COL].max().execute()
             source_unq_count = source_unq_row_num[consts.DVT_POS_COL].max().execute()
             target_unq_count = target_unq_row_num[consts.DVT_POS_COL].max().execute()
-            
+
             # For some reason Teradata connector returns a dataframe with the count element,
             # while the other connectors return a int64 value
             if isinstance(source_count, pandas.DataFrame):
