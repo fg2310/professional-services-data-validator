@@ -25,6 +25,7 @@ def teradata_connect(
     logmech: str = "TD2",
     use_no_lock_tables: str = "False",
     json_params: str = None,
+    session_tag: str = None,
 ):
     backend = TeradataBackend()
     if json_params:
@@ -39,4 +40,5 @@ def teradata_connect(
         use_no_lock_tables=use_no_lock_tables,
         json_params=json_params,
     )
+    backend(f"SET QUERY_BAND='{session_tag}' FOR SESSION").execute()
     return backend

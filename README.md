@@ -119,6 +119,9 @@ data-validation
                         See: *Validation Reports* section
   [--bq-result-handler or -bqrh PROJECT_ID.DATASET.TABLE or CONNECTION_NAME.DATASET.TABLE]
                         This option has been deprecated and will be removed in a future release.
+  [--session-tags or -st SOURCE_TAG:TARGET_TAG]
+                        Colon separated string values of tags/labels/query band to be used as tags for the session
+                        This allows analysis of queries and costs related to validation.
   [--service-account or -sa PATH_TO_SA_KEY]
                         Service account to use for BigQuery result handler output.
   [--wildcard-include-string-len or -wis]

@@ -594,6 +594,13 @@ def _configure_row_parser(
         help="Flag to indicate the list of columns should be excluded from hash or concat instead of included.",
     )
     optional_arguments.add_argument(
+        "--session-tags",
+        "-st",
+        type=get_filters,
+        default=[],
+        help="Tags for sessions in the format source_tag:target_tag",
+    )
+    optional_arguments.add_argument(
         "--filters",
         "-filters",
         type=get_filters,
@@ -744,6 +751,13 @@ def _configure_column_parser(column_parser):
         type=threshold_float,
         default=0.0,
         help="Float max threshold for percent difference",
+    )
+    optional_arguments.add_argument(
+        "--session-tags",
+        "-st",
+        type=get_filters,
+        default=[],
+        help="Tags for sessions in the format source_tag:target_tag",
     )
     optional_arguments.add_argument(
         "--filters",
@@ -946,6 +960,13 @@ def _configure_custom_query_column_parser(custom_query_column_parser):
         "-ctb",
         action="store_true",
         help="Cast any int32 fields to int64 for large aggregations.",
+    )
+    optional_arguments.add_argument(
+        "--session-tags",
+        "-st",
+        type=get_filters,
+        default=[],
+        help="Tags for sessions in the format source_tag:target_tag",
     )
     optional_arguments.add_argument(
         "--filters",

@@ -93,12 +93,16 @@ except Exception:
 
 
 def get_google_bigquery_client(
-    project_id: str, credentials=None, api_endpoint: str = None
+    project_id: str,
+    credentials=None,
+    api_endpoint: str = None,
+    session_tag: str = None,
 ):
     info = client_info.get_http_client_info()
-    job_config = bigquery.QueryJobConfig(
-        connection_properties=[bigquery.ConnectionProperty("time_zone", "UTC")]
-    )
+    connection_properties = [bigquery.ConnectionProperty("time_zone", "UTC")]
+    if session_tag:
+        connection_properties.add("query_label", session_tag)
+    job_config = bigquery.QueryJobConfig(connection_properties=connection_properties)
     options = None
     if api_endpoint:
         options = client_options.ClientOptions(api_endpoint=api_endpoint)
@@ -112,10 +116,17 @@ def get_google_bigquery_client(
 
 
 def get_bigquery_client(
-    project_id: str, dataset_id: str = "", credentials=None, api_endpoint: str = None
+    project_id: str,
+    dataset_id: str = "",
+    credentials=None,
+    api_endpoint: str = None,
+    session_tag: str = None,
 ):
     google_client = get_google_bigquery_client(
-        project_id, credentials=credentials, api_endpoint=api_endpoint
+        project_id,
+        credentials=credentials,
+        api_endpoint=api_endpoint,
+        session_tag=session_tag,
     )
 
     ibis_client = ibis.bigquery.connect(
@@ -269,8 +280,13 @@ def get_all_tables(client, allowed_schemas=None, tables_only=True):
     return table_objs
 
 
-def get_data_client(connection_config):
-    """Return DataClient client from given configuration"""
+def get_data_client(connection_config, session_tag: str = None):
+    """Return DataClient client from given configuration
+    For Teradata and BigQuery only we support session tags,
+    These are added to the sessions (labels in BQ and QueryBand in Teradata)
+    so that users can pass these tags to the underlying database and track
+    the resources that DVT queries are consuming
+    Tags are not supported for result handlers, queries and find-tables"""
     connection_config = copy.deepcopy(connection_config)
     source_type = connection_config.pop(consts.SOURCE_TYPE)
     secret_manager_type = connection_config.pop(consts.SECRET_MANAGER_TYPE, None)
@@ -307,6 +323,11 @@ def get_data_client(connection_config):
         raise Exception(msg)
 
     try:
+        if session_tag and (
+            source_type == consts.SOURCE_TYPE_BIGQUERY
+            or source_type == consts.SOURCE_TYPE_TERADATA
+        ):
+            decrypted_connection_config["session_tag"] = session_tag
         data_client = CLIENT_LOOKUP[source_type](**decrypted_connection_config)
         data_client._source_type = source_type
     except Exception as e:
