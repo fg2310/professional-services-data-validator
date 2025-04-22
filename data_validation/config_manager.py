@@ -53,11 +53,12 @@ class ConfigManager(object):
         self._state_manager = state_manager.StateManager()
         self._config = config
 
+        breakpoint()
         self.source_client = source_client or clients.get_data_client(
-            self.get_source_connection()
+            self.get_source_connection(), session_tag=config['session_tags']['source'] if config['session_tags'] else None
         )
         self.target_client = target_client or clients.get_data_client(
-            self.get_target_connection()
+            self.get_target_connection(), session_tag=config['session_tags']['target'] if config['session_tags'] else None
         )
 
         self.verbose = verbose
@@ -517,6 +518,7 @@ class ConfigManager(object):
         target_client=None,
         result_handler_config=None,
         filter_config=None,
+        session_tags=None,
         filter_status=None,
         trim_string_pks=None,
         case_insensitive_match=None,
@@ -548,6 +550,7 @@ class ConfigManager(object):
             consts.CONFIG_FORMAT: format,
             consts.CONFIG_RESULT_HANDLER: result_handler_config,
             consts.CONFIG_FILTERS: filter_config,
+            consts.CONFIG_SESSION_TAGS: session_tags,
             consts.CONFIG_USE_RANDOM_ROWS: use_random_rows,
             consts.CONFIG_RANDOM_ROW_BATCH_SIZE: random_row_batch_size,
             consts.CONFIG_FILTER_STATUS: filter_status,

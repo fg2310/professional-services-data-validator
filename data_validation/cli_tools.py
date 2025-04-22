@@ -1552,6 +1552,7 @@ def get_pre_build_configs(args: "Namespace", validate_cmd: str) -> List[Dict]:
 
     # Set filter_config and threshold. Not supported in case of schema validation
     filter_config = getattr(args, consts.CONFIG_FILTERS, [])
+    session_tags=getattr(args, consts.CONFIG_SESSION_TAGS)[0] if getattr(args, consts.CONFIG_SESSION_TAGS) else None
     threshold = getattr(args, consts.CONFIG_THRESHOLD, 0.0)
 
     # Get labels
@@ -1562,8 +1563,8 @@ def get_pre_build_configs(args: "Namespace", validate_cmd: str) -> List[Dict]:
 
     # Get source and target clients
     mgr = state_manager.StateManager()
-    source_client = clients.get_data_client(mgr.get_connection_config(args.source_conn))
-    target_client = clients.get_data_client(mgr.get_connection_config(args.target_conn))
+    source_client = clients.get_data_client(mgr.get_connection_config(args.source_conn), session_tag=session_tags["source"] if session_tags else None)
+    target_client = clients.get_data_client(mgr.get_connection_config(args.target_conn), session_tag=session_tags["target"] if session_tags else None)
 
     # Get format: text, csv, json, table. Default is table
     format = args.format if args.format else consts.FORMAT_TYPE_TABLE
@@ -1617,6 +1618,7 @@ def get_pre_build_configs(args: "Namespace", validate_cmd: str) -> List[Dict]:
             "target_client": target_client,
             "result_handler_config": result_handler_config,
             "filter_config": filter_config,
+            consts.CONFIG_SESSION_TAGS: session_tags,
             consts.CONFIG_FILTER_STATUS: filter_status,
             consts.CONFIG_TRIM_STRING_PKS: getattr(
                 args, consts.CONFIG_TRIM_STRING_PKS, False

@@ -103,6 +103,7 @@ def get_google_bigquery_client(
     if session_tag:
         connection_properties.add("query_label", session_tag)
     job_config = bigquery.QueryJobConfig(connection_properties=connection_properties)
+    breakpoint()
     options = None
     if api_endpoint:
         options = client_options.ClientOptions(api_endpoint=api_endpoint)
