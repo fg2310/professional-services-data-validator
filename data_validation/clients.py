@@ -101,9 +101,10 @@ def get_google_bigquery_client(
     info = client_info.get_http_client_info()
     connection_properties = [bigquery.ConnectionProperty("time_zone", "UTC")]
     if session_tag:
-        connection_properties.add("query_label", session_tag)
+        connection_properties.append(
+            bigquery.ConnectionProperty("query_label", session_tag)
+        )
     job_config = bigquery.QueryJobConfig(connection_properties=connection_properties)
-    breakpoint()
     options = None
     if api_endpoint:
         options = client_options.ClientOptions(api_endpoint=api_endpoint)

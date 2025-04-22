@@ -40,6 +40,6 @@ def teradata_connect(
         use_no_lock_tables=use_no_lock_tables,
         json_params=json_params,
     )
-    breakpoint()
-    if session_tag: backend.raw_sql(f"SET QUERY_BAND='{session_tag}' FOR SESSION").fetchall()
+    if session_tag:
+        backend.raw_sql(f"SET QUERY_BAND='{session_tag}' FOR SESSION").fetchall()
     return backend

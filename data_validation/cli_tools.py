@@ -596,8 +596,8 @@ def _configure_row_parser(
     optional_arguments.add_argument(
         "--session-tags",
         "-st",
-        type=get_filters,
-        default=[],
+        type=get_session_tags,
+        default={},
         help="Tags for sessions in the format source_tag:target_tag",
     )
     optional_arguments.add_argument(
@@ -755,7 +755,7 @@ def _configure_column_parser(column_parser):
     optional_arguments.add_argument(
         "--session-tags",
         "-st",
-        type=get_filters,
+        type=get_session_tags,
         default=[],
         help="Tags for sessions in the format source_tag:target_tag",
     )
@@ -964,7 +964,7 @@ def _configure_custom_query_column_parser(custom_query_column_parser):
     optional_arguments.add_argument(
         "--session-tags",
         "-st",
-        type=get_filters,
+        type=get_session_tags,
         default=[],
         help="Tags for sessions in the format source_tag:target_tag",
     )
@@ -1283,6 +1283,38 @@ def get_filters(filter_value: str) -> List[Dict]:
     return filter_config
 
 
+def get_session_tags(filter_value: str) -> Dict:
+    """Returns filters for source and target from --filters argument.
+    A filter is the condition that is used in a SQL WHERE clause.
+    If only one filter is specified, it applies to both source and target
+    For a doc on regular expression for filters see docs/internal/filters_regex.md
+    """
+    filters = util.split_not_in_quotes(filter_value, ":")
+    if len(filters) not in (1, 2):
+        raise argparse.ArgumentTypeError("Unable to parse filter arguments.")
+    filters = [_.strip() for _ in filters]
+    if len(filters) == 1:
+        if not filters[0]:
+            raise argparse.ArgumentTypeError("Empty string not allowed in filter")
+        filter_dict = {
+            "type": "custom",
+            "source": filters[0],
+            "target": filters[0],
+        }
+    elif len(filters) == 2:
+        if not filters[0] or not filters[1]:
+            raise argparse.ArgumentTypeError("Empty string not allowed in filter")
+        filter_dict = {
+            "type": "custom",
+            "source": filters[0],
+            "target": filters[1],
+        }
+    filter_config = [
+        filter_dict,
+    ]
+    return filter_config
+
+
 def _get_result_handler(rc_value: str, sa_file=None) -> dict:
     """Returns dict of result handler config. Backwards compatible for JSON input.
 
@@ -1552,7 +1584,11 @@ def get_pre_build_configs(args: "Namespace", validate_cmd: str) -> List[Dict]:
 
     # Set filter_config and threshold. Not supported in case of schema validation
     filter_config = getattr(args, consts.CONFIG_FILTERS, [])
-    session_tags=getattr(args, consts.CONFIG_SESSION_TAGS)[0] if getattr(args, consts.CONFIG_SESSION_TAGS) else None
+    session_tags = (
+        getattr(args, consts.CONFIG_SESSION_TAGS)[0]
+        if getattr(args, consts.CONFIG_SESSION_TAGS)
+        else None
+    )
     threshold = getattr(args, consts.CONFIG_THRESHOLD, 0.0)
 
     # Get labels
@@ -1563,8 +1599,14 @@ def get_pre_build_configs(args: "Namespace", validate_cmd: str) -> List[Dict]:
 
     # Get source and target clients
     mgr = state_manager.StateManager()
-    source_client = clients.get_data_client(mgr.get_connection_config(args.source_conn), session_tag=session_tags["source"] if session_tags else None)
-    target_client = clients.get_data_client(mgr.get_connection_config(args.target_conn), session_tag=session_tags["target"] if session_tags else None)
+    source_client = clients.get_data_client(
+        mgr.get_connection_config(args.source_conn),
+        session_tag=session_tags["source"] if session_tags else None,
+    )
+    target_client = clients.get_data_client(
+        mgr.get_connection_config(args.target_conn),
+        session_tag=session_tags["target"] if session_tags else None,
+    )
 
     # Get format: text, csv, json, table. Default is table
     format = args.format if args.format else consts.FORMAT_TYPE_TABLE

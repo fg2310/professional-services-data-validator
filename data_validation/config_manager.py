@@ -53,12 +53,17 @@ class ConfigManager(object):
         self._state_manager = state_manager.StateManager()
         self._config = config
 
-        breakpoint()
         self.source_client = source_client or clients.get_data_client(
-            self.get_source_connection(), session_tag=config['session_tags']['source'] if config['session_tags'] else None
+            self.get_source_connection(),
+            session_tag=config["session_tags"]["source"]
+            if config["session_tags"]
+            else None,
         )
         self.target_client = target_client or clients.get_data_client(
-            self.get_target_connection(), session_tag=config['session_tags']['target'] if config['session_tags'] else None
+            self.get_target_connection(),
+            session_tag=config["session_tags"]["target"]
+            if config["session_tags"]
+            else None,
         )
 
         self.verbose = verbose
