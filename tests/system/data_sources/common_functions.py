@@ -248,6 +248,7 @@ def schema_validation_test(
     allow_list: str = None,
     allow_list_file: str = None,
     result_handler: str = None,
+    labels: str = None,
 ) -> "DataFrame":
     """Generic schema validation test.
 
@@ -265,6 +266,7 @@ def schema_validation_test(
         f"--allow-list={allow_list}" if allow_list else None,
         f"--allow-list-file={allow_list_file}" if allow_list_file else None,
         f"--result-handler={result_handler}" if result_handler else None,
+        f"--labels={labels}" if labels else None,
     ]
     cli_arg_list = [_ for _ in cli_arg_list if _]
     args = parser.parse_args(cli_arg_list)
@@ -450,8 +452,8 @@ def id_column_row_validation_test(
 
 def partition_table_test(
     expected_filter: str,
-    pk="course_id,quarter_id,student_id",
-    tables="pso_data_validator.test_generate_partitions",
+    pk="course_id,quarter_id,recd_timestamp,registration_date,approved",
+    tables="pso_data_validator.test_generate_partitions_v2",
     filters="quarter_id != 1111",
     partition_num=9,
     parts_per_file=5,
@@ -491,8 +493,8 @@ def partition_table_test(
 def partition_query_test(
     expected_filter: str,
     tmp_path: pathlib.Path,
-    pk="course_id,quarter_id,student_id",
-    tables="pso_data_validator.test_generate_partitions",
+    pk="course_id,quarter_id,recd_timestamp,registration_date,approved",
+    tables="pso_data_validator.test_generate_partitions_v2",
     filters="quarter_id != 1111",
 ):
     """Test generate table partitions for custom queries. Usually only the partition_filter is different
