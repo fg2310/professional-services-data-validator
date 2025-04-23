@@ -119,9 +119,9 @@ data-validation
                         See: *Validation Reports* section
   [--bq-result-handler or -bqrh PROJECT_ID.DATASET.TABLE or CONNECTION_NAME.DATASET.TABLE]
                         This option has been deprecated and will be removed in a future release.
-  [--session-tags or -st SOURCE_TAG:TARGET_TAG]
-                        Colon separated string values of tags/labels/query band to be used as tags for the session
-                        This allows analysis of queries and costs related to validation.
+  [--session-tags or -st SOURCE_TAG/TARGET_TAG]
+                        / separated string values of tags/labels/query band to be used as tags for the session
+                        This allows analysis of queries and costs related to validation. See *Session Tags* section
   [--service-account or -sa PATH_TO_SA_KEY]
                         Service account to use for BigQuery result handler output.
   [--wildcard-include-string-len or -wis]
@@ -583,6 +583,12 @@ When running DVT in a distributed fashion, both the `--kube-completions` and `--
 
 The `--config-dir` flag will specify the directory with the YAML files to be executed in parallel. If you used `generate-table-partitions` to generate the YAMLs, this would be the directory where the partition files numbered `0000.yaml` to `<partition_num - 1>.yaml` are stored i.e (`gs://my_config_dir/source_schema.source_table/`). When creating your Cloud Run Job, set the number of tasks equal to the number of table partitions so the task index matches the YAML file to be validated. When executed, each Cloud Run task will validate a partition in parallel.
 
+### Session Tags
+
+When running validations at scale over billions of rows repeatedly, there is a need to evaluate the queries for many purposes,
+including estimating, allocating and reducing cost and optimizing tables, indexes for faster execution. Databases provide the capability
+to tag queries with name value pairs, which can be used to aggregate and analyze query metadata. DVT supports providing session tags
+which are passed to the underlying database when the session is created. DVT supports Teradata and BigQuery. The tags are strings which are a sequence of 0 or more characters from `[a-zA-Z0-9_\-=:;, ]` separated by `/` character. The following session tags are valid `-st=/application:validation,phase:dev`, `-st='application=validation;phase=dev;'/application:validation,phase:dev` and `-st='application=validation;phase=dev;'/`. Since `;` and ` ` have special significance in the shell, they will need to be quoted when session tags include these characters.
 
 ### Validation Reports
 
