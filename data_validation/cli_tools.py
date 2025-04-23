@@ -52,6 +52,7 @@ import sys
 import uuid
 import os
 import math
+import re
 from typing import Dict, List, Optional, TYPE_CHECKING
 from yaml import Dumper, Loader, dump, load
 
@@ -1283,36 +1284,22 @@ def get_filters(filter_value: str) -> List[Dict]:
     return filter_config
 
 
-def get_session_tags(filter_value: str) -> Dict:
-    """Returns filters for source and target from --filters argument.
-    A filter is the condition that is used in a SQL WHERE clause.
-    If only one filter is specified, it applies to both source and target
-    For a doc on regular expression for filters see docs/internal/filters_regex.md
+def get_session_tags(session_tags_str: str) -> Dict:
+    """Returns tags for source and target from --source-tags argument.
+    Both tags must be specified,even if they are empty strings
+    Leverages regular expression for filters see docs/internal/filters_regex.md
     """
-    filters = util.split_not_in_quotes(filter_value, ":")
-    if len(filters) not in (1, 2):
-        raise argparse.ArgumentTypeError("Unable to parse filter arguments.")
-    filters = [_.strip() for _ in filters]
-    if len(filters) == 1:
-        if not filters[0]:
-            raise argparse.ArgumentTypeError("Empty string not allowed in filter")
-        filter_dict = {
-            "type": "custom",
-            "source": filters[0],
-            "target": filters[0],
+
+    single_tag = r"[a-zA-Z0-9_\-=:;, ]*"
+    double_tags = r"(?P<source>" + single_tag + r")/(?P<target>" + single_tag + r")"
+    if result := re.fullmatch(double_tags, session_tags_str):
+        session_tags = {
+            "source": result.group("source"),
+            "target": result.group("target"),
         }
-    elif len(filters) == 2:
-        if not filters[0] or not filters[1]:
-            raise argparse.ArgumentTypeError("Empty string not allowed in filter")
-        filter_dict = {
-            "type": "custom",
-            "source": filters[0],
-            "target": filters[1],
-        }
-    filter_config = [
-        filter_dict,
-    ]
-    return filter_config
+    else:
+        raise argparse.ArgumentTypeError("Unable to parse session tags.")
+    return session_tags
 
 
 def _get_result_handler(rc_value: str, sa_file=None) -> dict:
@@ -1584,11 +1571,7 @@ def get_pre_build_configs(args: "Namespace", validate_cmd: str) -> List[Dict]:
 
     # Set filter_config and threshold. Not supported in case of schema validation
     filter_config = getattr(args, consts.CONFIG_FILTERS, [])
-    session_tags = (
-        getattr(args, consts.CONFIG_SESSION_TAGS)[0]
-        if getattr(args, consts.CONFIG_SESSION_TAGS)
-        else None
-    )
+    session_tags = getattr(args, consts.CONFIG_SESSION_TAGS, None)
     threshold = getattr(args, consts.CONFIG_THRESHOLD, 0.0)
 
     # Get labels
