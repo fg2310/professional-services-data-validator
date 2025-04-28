@@ -56,13 +56,13 @@ class ConfigManager(object):
         self.source_client = source_client or clients.get_data_client(
             self.get_source_connection(),
             session_tag=config["session_tags"]["source"]
-            if config["session_tags"]
+            if getattr(config, "session_tags", None)
             else None,
         )
         self.target_client = target_client or clients.get_data_client(
             self.get_target_connection(),
             session_tag=config["session_tags"]["target"]
-            if config["session_tags"]
+            if getattr(config, "session_tags", None)
             else None,
         )
 
@@ -487,13 +487,15 @@ class ConfigManager(object):
         """Return Dict object formatted for a Yaml file."""
         config = copy.deepcopy(self.config)
 
+        # The following are python objects that cannot be serialized, hence remove
         config.pop(consts.CONFIG_SOURCE_CONN, None)
         config.pop(consts.CONFIG_TARGET_CONN, None)
-
+        
+        # The following are common across all validations, therefore remove
+        config.pop(consts.CONFIG_RESULT_HANDLER, None)
         config.pop(consts.CONFIG_SOURCE_CONN_NAME, None)
         config.pop(consts.CONFIG_TARGET_CONN_NAME, None)
-
-        config.pop(consts.CONFIG_RESULT_HANDLER, None)
+        config.pop(consts.CONFIG_SESSION_TAGS, None)
 
         return config
 

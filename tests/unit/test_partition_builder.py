@@ -127,6 +127,7 @@ YAML_CONFIGS_LIST = [
                 "yaml_config": {
                     "source": "{'source_type':'Example'}",
                     "target": "{'source_type':'Example'}",
+                    "session_tags": {},
                     "result_handler": {},
                     "validations": [
                         {
@@ -327,6 +328,7 @@ YAML_CONFIGS_LIST = [
                 "yaml_config": {
                     "source": "{'source_type':'Example'}",
                     "target": "{'source_type':'Example'}",
+                    "session_tags": {},
                     "result_handler": {},
                     "validations": [
                         {

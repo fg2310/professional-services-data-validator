@@ -80,6 +80,7 @@ class PartitionBuilder:
         yaml_config = {
             consts.YAML_SOURCE: self.args.source_conn,
             consts.YAML_TARGET: self.args.target_conn,
+            consts.CONFIG_SESSION_TAGS: self.args.session_tags,
             consts.YAML_RESULT_HANDLER: config_manager.result_handler_config,
             consts.YAML_VALIDATIONS: yaml_validations,
         }

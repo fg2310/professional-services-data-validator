@@ -443,9 +443,9 @@ def build_config_managers_from_yaml(args, config_file_path):
     mgr = state_manager.StateManager()
     source_conn = mgr.get_connection_config(yaml_configs[consts.YAML_SOURCE])
     target_conn = mgr.get_connection_config(yaml_configs[consts.YAML_TARGET])
-
-    source_client = clients.get_data_client(source_conn)
-    target_client = clients.get_data_client(target_conn)
+    session_tags = getattr(yaml_configs, consts.CONFIG_SESSION_TAGS, None)
+    source_client = clients.get_data_client(source_conn, session_tag=session_tags['source'] if session_tags else None)
+    target_client = clients.get_data_client(target_conn, session_tag=session_tags['target'] if session_tags else None)
 
     config_managers = []
     for config in yaml_configs[consts.YAML_VALIDATIONS]:
@@ -470,6 +470,7 @@ def convert_config_to_yaml(args, config_managers: list):
     yaml_config = {
         consts.YAML_SOURCE: args.source_conn,
         consts.YAML_TARGET: args.target_conn,
+        consts.CONFIG_SESSION_TAGS: args.session_tags,
         consts.YAML_RESULT_HANDLER: config_managers[0].result_handler_config,
         consts.YAML_VALIDATIONS: [],
     }
