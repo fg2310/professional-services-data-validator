@@ -1,0 +1,349 @@
+Building wheel for google-pso-data-validator (setup.py): finished with status 'done'
+17.91   Created wheel for google-pso-data-validator: filename=google_pso_data_validator-7.6.0-py2.py3-none-any.whl size=187122 sha256=e0be50adc98654ed3e28fa1f8b74edd97c88aa5c17bedd1f6ca8ca4870d2f974
+17.91   Stored in directory: /root/.cache/pip/wheels/64/eb/38/78e3968d56ea7645174b210cb22cb5f85c3c7099c59226f674
+17.92   DEPRECATION: Building 'thrift' using the legacy setup.py bdist_wheel mechanism, which will be removed in a future version. pip 25.3 will enforce this behaviour change. A possible replacement is to use the standardized build interface by setting the `--use-pep517` option, (possibly combined with `--no-build-isolation`), or adding a `pyproject.toml` file to the source tree of 'thrift'. Discussion can be found at https://github.com/pypa/pip/issues/6334
+17.92   Building wheel for thrift (setup.py): started
+17.92   Running command python setup.py bdist_wheel
+18.16   running bdist_wheel
+18.16   running build
+18.16   running build_py
+18.18   creating build
+18.18   creating build/lib.linux-x86_64-3.9
+18.18   creating build/lib.linux-x86_64-3.9/thrift
+18.19   copying src/TSCons.py -> build/lib.linux-x86_64-3.9/thrift
+18.19   copying src/compat.py -> build/lib.linux-x86_64-3.9/thrift
+18.19   copying src/TSerialization.py -> build/lib.linux-x86_64-3.9/thrift
+18.19   copying src/TTornado.py -> build/lib.linux-x86_64-3.9/thrift
+18.19   copying src/Thrift.py -> build/lib.linux-x86_64-3.9/thrift
+18.19   copying src/TRecursive.py -> build/lib.linux-x86_64-3.9/thrift
+18.19   copying src/__init__.py -> build/lib.linux-x86_64-3.9/thrift
+18.19   copying src/TMultiplexedProcessor.py -> build/lib.linux-x86_64-3.9/thrift
+18.19   creating build/lib.linux-x86_64-3.9/thrift/protocol
+18.19   copying src/protocol/THeaderProtocol.py -> build/lib.linux-x86_64-3.9/thrift/protocol
+18.19   copying src/protocol/TBinaryProtocol.py -> build/lib.linux-x86_64-3.9/thrift/protocol
+18.19   copying src/protocol/TProtocol.py -> build/lib.linux-x86_64-3.9/thrift/protocol
+18.19   copying src/protocol/TProtocolDecorator.py -> build/lib.linux-x86_64-3.9/thrift/protocol
+18.19   copying src/protocol/TCompactProtocol.py -> build/lib.linux-x86_64-3.9/thrift/protocol
+18.19   copying src/protocol/TMultiplexedProtocol.py -> build/lib.linux-x86_64-3.9/thrift/protocol
+18.19   copying src/protocol/TJSONProtocol.py -> build/lib.linux-x86_64-3.9/thrift/protocol
+18.19   copying src/protocol/__init__.py -> build/lib.linux-x86_64-3.9/thrift/protocol
+18.19   copying src/protocol/TBase.py -> build/lib.linux-x86_64-3.9/thrift/protocol
+18.19   creating build/lib.linux-x86_64-3.9/thrift/transport
+18.19   copying src/transport/TSocket.py -> build/lib.linux-x86_64-3.9/thrift/transport
+18.19   copying src/transport/TZlibTransport.py -> build/lib.linux-x86_64-3.9/thrift/transport
+18.20   copying src/transport/sslcompat.py -> build/lib.linux-x86_64-3.9/thrift/transport
+18.20   copying src/transport/TSSLSocket.py -> build/lib.linux-x86_64-3.9/thrift/transport
+18.20   copying src/transport/TTwisted.py -> build/lib.linux-x86_64-3.9/thrift/transport
+18.20   copying src/transport/TTransport.py -> build/lib.linux-x86_64-3.9/thrift/transport
+18.20   copying src/transport/THeaderTransport.py -> build/lib.linux-x86_64-3.9/thrift/transport
+18.20   copying src/transport/THttpClient.py -> build/lib.linux-x86_64-3.9/thrift/transport
+18.20   copying src/transport/__init__.py -> build/lib.linux-x86_64-3.9/thrift/transport
+18.20   creating build/lib.linux-x86_64-3.9/thrift/server
+18.20   copying src/server/TNonblockingServer.py -> build/lib.linux-x86_64-3.9/thrift/server
+18.20   copying src/server/TServer.py -> build/lib.linux-x86_64-3.9/thrift/server
+18.20   copying src/server/TProcessPoolServer.py -> build/lib.linux-x86_64-3.9/thrift/server
+18.20   copying src/server/THttpServer.py -> build/lib.linux-x86_64-3.9/thrift/server
+18.20   copying src/server/__init__.py -> build/lib.linux-x86_64-3.9/thrift/server
+18.20   running build_ext
+18.20   building 'thrift.protocol.fastbinary' extension
+18.20   creating build/temp.linux-x86_64-3.9
+18.20   creating build/temp.linux-x86_64-3.9/src
+18.20   creating build/temp.linux-x86_64-3.9/src/ext
+18.20   gcc -pthread -Wno-unused-result -Wsign-compare -DNDEBUG -g -fwrapv -O3 -Wall -fPIC -Isrc -I/usr/local/include/python3.9 -c src/ext/binary.cpp -o build/temp.linux-x86_64-3.9/src/ext/binary.o -std=c++11
+18.21   gcc: error trying to exec 'cc1plus': execvp: No such file or directory
+18.21 
+18.21   ********************************************************************************
+18.21   An error occurred while trying to compile with the C extension enabled
+18.21   Attempting to build without the extension now
+18.21   ********************************************************************************
+18.21 
+18.22   running bdist_wheel
+18.22   running build
+18.22   running build_py
+18.22   creating build/lib
+18.22   creating build/lib/thrift
+18.22   copying src/TSCons.py -> build/lib/thrift
+18.23   copying src/compat.py -> build/lib/thrift
+18.23   copying src/TSerialization.py -> build/lib/thrift
+18.23   copying src/TTornado.py -> build/lib/thrift
+18.23   copying src/Thrift.py -> build/lib/thrift
+18.23   copying src/TRecursive.py -> build/lib/thrift
+18.23   copying src/__init__.py -> build/lib/thrift
+18.23   copying src/TMultiplexedProcessor.py -> build/lib/thrift
+18.23   creating build/lib/thrift/protocol
+18.23   copying src/protocol/THeaderProtocol.py -> build/lib/thrift/protocol
+18.23   copying src/protocol/TBinaryProtocol.py -> build/lib/thrift/protocol
+18.23   copying src/protocol/TProtocol.py -> build/lib/thrift/protocol
+18.23   copying src/protocol/TProtocolDecorator.py -> build/lib/thrift/protocol
+18.23   copying src/protocol/TCompactProtocol.py -> build/lib/thrift/protocol
+18.23   copying src/protocol/TMultiplexedProtocol.py -> build/lib/thrift/protocol
+18.23   copying src/protocol/TJSONProtocol.py -> build/lib/thrift/protocol
+18.23   copying src/protocol/__init__.py -> build/lib/thrift/protocol
+18.23   copying src/protocol/TBase.py -> build/lib/thrift/protocol
+18.23   creating build/lib/thrift/transport
+18.23   copying src/transport/TSocket.py -> build/lib/thrift/transport
+18.23   copying src/transport/TZlibTransport.py -> build/lib/thrift/transport
+18.23   copying src/transport/sslcompat.py -> build/lib/thrift/transport
+18.23   copying src/transport/TSSLSocket.py -> build/lib/thrift/transport
+18.24   copying src/transport/TTwisted.py -> build/lib/thrift/transport
+18.24   copying src/transport/TTransport.py -> build/lib/thrift/transport
+18.24   copying src/transport/THeaderTransport.py -> build/lib/thrift/transport
+18.24   copying src/transport/THttpClient.py -> build/lib/thrift/transport
+18.24   copying src/transport/__init__.py -> build/lib/thrift/transport
+18.24   creating build/lib/thrift/server
+18.24   copying src/server/TNonblockingServer.py -> build/lib/thrift/server
+18.24   copying src/server/TServer.py -> build/lib/thrift/server
+18.24   copying src/server/TProcessPoolServer.py -> build/lib/thrift/server
+18.24   copying src/server/THttpServer.py -> build/lib/thrift/server
+18.24   copying src/server/__init__.py -> build/lib/thrift/server
+18.24   installing to build/bdist.linux-x86_64/wheel
+18.24   running install
+18.24   running install_lib
+18.24   creating build/bdist.linux-x86_64
+18.24   creating build/bdist.linux-x86_64/wheel
+18.24   creating build/bdist.linux-x86_64/wheel/thrift
+18.24   copying build/lib/thrift/TSCons.py -> build/bdist.linux-x86_64/wheel/thrift
+18.24   creating build/bdist.linux-x86_64/wheel/thrift/server
+18.24   copying build/lib/thrift/server/TNonblockingServer.py -> build/bdist.linux-x86_64/wheel/thrift/server
+18.24   copying build/lib/thrift/server/TServer.py -> build/bdist.linux-x86_64/wheel/thrift/server
+18.24   copying build/lib/thrift/server/TProcessPoolServer.py -> build/bdist.linux-x86_64/wheel/thrift/server
+18.25   copying build/lib/thrift/server/THttpServer.py -> build/bdist.linux-x86_64/wheel/thrift/server
+18.25   copying build/lib/thrift/server/__init__.py -> build/bdist.linux-x86_64/wheel/thrift/server
+18.25   copying build/lib/thrift/compat.py -> build/bdist.linux-x86_64/wheel/thrift
+18.25   copying build/lib/thrift/TSerialization.py -> build/bdist.linux-x86_64/wheel/thrift
+18.25   copying build/lib/thrift/TTornado.py -> build/bdist.linux-x86_64/wheel/thrift
+18.25   creating build/bdist.linux-x86_64/wheel/thrift/transport
+18.25   copying build/lib/thrift/transport/TSocket.py -> build/bdist.linux-x86_64/wheel/thrift/transport
+18.25   copying build/lib/thrift/transport/TZlibTransport.py -> build/bdist.linux-x86_64/wheel/thrift/transport
+18.25   copying build/lib/thrift/transport/sslcompat.py -> build/bdist.linux-x86_64/wheel/thrift/transport
+18.25   copying build/lib/thrift/transport/TSSLSocket.py -> build/bdist.linux-x86_64/wheel/thrift/transport
+18.25   copying build/lib/thrift/transport/TTwisted.py -> build/bdist.linux-x86_64/wheel/thrift/transport
+18.25   copying build/lib/thrift/transport/TTransport.py -> build/bdist.linux-x86_64/wheel/thrift/transport
+18.25   copying build/lib/thrift/transport/THeaderTransport.py -> build/bdist.linux-x86_64/wheel/thrift/transport
+18.25   copying build/lib/thrift/transport/THttpClient.py -> build/bdist.linux-x86_64/wheel/thrift/transport
+18.25   copying build/lib/thrift/transport/__init__.py -> build/bdist.linux-x86_64/wheel/thrift/transport
+18.25   copying build/lib/thrift/Thrift.py -> build/bdist.linux-x86_64/wheel/thrift
+18.25   creating build/bdist.linux-x86_64/wheel/thrift/protocol
+18.25   copying build/lib/thrift/protocol/THeaderProtocol.py -> build/bdist.linux-x86_64/wheel/thrift/protocol
+18.25   copying build/lib/thrift/protocol/TBinaryProtocol.py -> build/bdist.linux-x86_64/wheel/thrift/protocol
+18.25   copying build/lib/thrift/protocol/TProtocol.py -> build/bdist.linux-x86_64/wheel/thrift/protocol
+18.25   copying build/lib/thrift/protocol/TProtocolDecorator.py -> build/bdist.linux-x86_64/wheel/thrift/protocol
+18.25   copying build/lib/thrift/protocol/TCompactProtocol.py -> build/bdist.linux-x86_64/wheel/thrift/protocol
+18.26   copying build/lib/thrift/protocol/TMultiplexedProtocol.py -> build/bdist.linux-x86_64/wheel/thrift/protocol
+18.26   copying build/lib/thrift/protocol/TJSONProtocol.py -> build/bdist.linux-x86_64/wheel/thrift/protocol
+18.26   copying build/lib/thrift/protocol/__init__.py -> build/bdist.linux-x86_64/wheel/thrift/protocol
+18.26   copying build/lib/thrift/protocol/TBase.py -> build/bdist.linux-x86_64/wheel/thrift/protocol
+18.26   copying build/lib/thrift/TRecursive.py -> build/bdist.linux-x86_64/wheel/thrift
+18.26   copying build/lib/thrift/__init__.py -> build/bdist.linux-x86_64/wheel/thrift
+18.26   copying build/lib/thrift/TMultiplexedProcessor.py -> build/bdist.linux-x86_64/wheel/thrift
+18.26   writing byte-compilation script '/tmp/tmpazkea3li.py'
+18.26   /usr/local/bin/python /tmp/tmpazkea3li.py
+18.36   removing /tmp/tmpazkea3li.py
+18.36   running install_egg_info
+18.37   running egg_info
+18.37   writing thrift.egg-info/PKG-INFO
+18.37   writing dependency_links to thrift.egg-info/dependency_links.txt
+18.37   writing requirements to thrift.egg-info/requires.txt
+18.37   writing top-level names to thrift.egg-info/top_level.txt
+18.38   reading manifest file 'thrift.egg-info/SOURCES.txt'
+18.38   reading manifest template 'MANIFEST.in'
+18.38   writing manifest file 'thrift.egg-info/SOURCES.txt'
+18.38   Copying thrift.egg-info to build/bdist.linux-x86_64/wheel/thrift-0.16.0-py3.9.egg-info
+18.38   running install_scripts
+18.41   creating build/bdist.linux-x86_64/wheel/thrift-0.16.0.dist-info/WHEEL
+18.41   creating '/tmp/pip-wheel-2koemuuq/thrift-0.16.0-py3-none-any.whl' and adding 'build/bdist.linux-x86_64/wheel' to it
+18.42   adding 'thrift/TMultiplexedProcessor.py'
+18.42   adding 'thrift/TRecursive.py'
+18.42   adding 'thrift/TSCons.py'
+18.42   adding 'thrift/TSerialization.py'
+18.42   adding 'thrift/TTornado.py'
+18.42   adding 'thrift/Thrift.py'
+18.42   adding 'thrift/__init__.py'
+18.42   adding 'thrift/compat.py'
+18.42   adding 'thrift/__pycache__/TMultiplexedProcessor.cpython-39.opt-1.pyc'
+18.42   adding 'thrift/__pycache__/TRecursive.cpython-39.opt-1.pyc'
+18.42   adding 'thrift/__pycache__/TSCons.cpython-39.opt-1.pyc'
+18.42   adding 'thrift/__pycache__/TSerialization.cpython-39.opt-1.pyc'
+18.42   adding 'thrift/__pycache__/TTornado.cpython-39.opt-1.pyc'
+18.42   adding 'thrift/__pycache__/Thrift.cpython-39.opt-1.pyc'
+18.42   adding 'thrift/__pycache__/__init__.cpython-39.opt-1.pyc'
+18.42   adding 'thrift/__pycache__/compat.cpython-39.opt-1.pyc'
+18.42   adding 'thrift/protocol/TBase.py'
+18.43   adding 'thrift/protocol/TBinaryProtocol.py'
+18.43   adding 'thrift/protocol/TCompactProtocol.py'
+18.43   adding 'thrift/protocol/THeaderProtocol.py'
+18.43   adding 'thrift/protocol/TJSONProtocol.py'
+18.43   adding 'thrift/protocol/TMultiplexedProtocol.py'
+18.43   adding 'thrift/protocol/TProtocol.py'
+18.43   adding 'thrift/protocol/TProtocolDecorator.py'
+18.43   adding 'thrift/protocol/__init__.py'
+18.43   adding 'thrift/protocol/__pycache__/TBase.cpython-39.opt-1.pyc'
+18.43   adding 'thrift/protocol/__pycache__/TBinaryProtocol.cpython-39.opt-1.pyc'
+18.43   adding 'thrift/protocol/__pycache__/TCompactProtocol.cpython-39.opt-1.pyc'
+18.43   adding 'thrift/protocol/__pycache__/THeaderProtocol.cpython-39.opt-1.pyc'
+18.44   adding 'thrift/protocol/__pycache__/TJSONProtocol.cpython-39.opt-1.pyc'
+18.44   adding 'thrift/protocol/__pycache__/TMultiplexedProtocol.cpython-39.opt-1.pyc'
+18.44   adding 'thrift/protocol/__pycache__/TProtocol.cpython-39.opt-1.pyc'
+18.44   adding 'thrift/protocol/__pycache__/TProtocolDecorator.cpython-39.opt-1.pyc'
+18.44   adding 'thrift/protocol/__pycache__/__init__.cpython-39.opt-1.pyc'
+18.44   adding 'thrift/server/THttpServer.py'
+18.44   adding 'thrift/server/TNonblockingServer.py'
+18.44   adding 'thrift/server/TProcessPoolServer.py'
+18.44   adding 'thrift/server/TServer.py'
+18.44   adding 'thrift/server/__init__.py'
+18.44   adding 'thrift/server/__pycache__/THttpServer.cpython-39.opt-1.pyc'
+18.44   adding 'thrift/server/__pycache__/TNonblockingServer.cpython-39.opt-1.pyc'
+18.45   adding 'thrift/server/__pycache__/TProcessPoolServer.cpython-39.opt-1.pyc'
+18.45   adding 'thrift/server/__pycache__/TServer.cpython-39.opt-1.pyc'
+18.45   adding 'thrift/server/__pycache__/__init__.cpython-39.opt-1.pyc'
+18.45   adding 'thrift/transport/THeaderTransport.py'
+18.45   adding 'thrift/transport/THttpClient.py'
+18.45   adding 'thrift/transport/TSSLSocket.py'
+18.45   adding 'thrift/transport/TSocket.py'
+18.45   adding 'thrift/transport/TTransport.py'
+18.45   adding 'thrift/transport/TTwisted.py'
+18.45   adding 'thrift/transport/TZlibTransport.py'
+18.45   adding 'thrift/transport/__init__.py'
+18.45   adding 'thrift/transport/sslcompat.py'
+18.46   adding 'thrift/transport/__pycache__/THeaderTransport.cpython-39.opt-1.pyc'
+18.46   adding 'thrift/transport/__pycache__/THttpClient.cpython-39.opt-1.pyc'
+18.46   adding 'thrift/transport/__pycache__/TSSLSocket.cpython-39.opt-1.pyc'
+18.46   adding 'thrift/transport/__pycache__/TSocket.cpython-39.opt-1.pyc'
+18.46   adding 'thrift/transport/__pycache__/TTransport.cpython-39.opt-1.pyc'
+18.46   adding 'thrift/transport/__pycache__/TTwisted.cpython-39.opt-1.pyc'
+18.46   adding 'thrift/transport/__pycache__/TZlibTransport.cpython-39.opt-1.pyc'
+18.46   adding 'thrift/transport/__pycache__/__init__.cpython-39.opt-1.pyc'
+18.47   adding 'thrift/transport/__pycache__/sslcompat.cpython-39.opt-1.pyc'
+18.47   adding 'thrift-0.16.0.dist-info/METADATA'
+18.47   adding 'thrift-0.16.0.dist-info/WHEEL'
+18.47   adding 'thrift-0.16.0.dist-info/top_level.txt'
+18.47   adding 'thrift-0.16.0.dist-info/RECORD'
+18.47   removing build/bdist.linux-x86_64/wheel
+18.50   Building wheel for thrift (setup.py): finished with status 'done'
+18.50   Created wheel for thrift: filename=thrift-0.16.0-py3-none-any.whl size=155972 sha256=138e56c0953ef8c8a62a26a4e3a23790b7cc26ffb08677cb18272df644b09cbc
+18.50   Stored in directory: /root/.cache/pip/wheels/67/b1/a4/cf8b927fdbee8e55234f1f421b531685b960e5f23b6273cfcf
+18.51   DEPRECATION: Building 'pure-sasl' using the legacy setup.py bdist_wheel mechanism, which will be removed in a future version. pip 25.3 will enforce this behaviour change. A possible replacement is to use the standardized build interface by setting the `--use-pep517` option, (possibly combined with `--no-build-isolation`), or adding a `pyproject.toml` file to the source tree of 'pure-sasl'. Discussion can be found at https://github.com/pypa/pip/issues/6334
+18.51   Building wheel for pure-sasl (setup.py): started
+18.51   Running command python setup.py bdist_wheel
+18.74   running bdist_wheel
+18.75   running build
+18.75   running build_py
+18.77   creating build
+18.77   creating build/lib
+18.77   creating build/lib/puresasl
+18.77   copying puresasl/client.py -> build/lib/puresasl
+18.77   copying puresasl/mechanisms.py -> build/lib/puresasl
+18.77   copying puresasl/__init__.py -> build/lib/puresasl
+18.77   installing to build/bdist.linux-x86_64/wheel
+18.77   running install
+18.77   running install_lib
+18.77   creating build/bdist.linux-x86_64
+18.77   creating build/bdist.linux-x86_64/wheel
+18.77   creating build/bdist.linux-x86_64/wheel/puresasl
+18.77   copying build/lib/puresasl/client.py -> build/bdist.linux-x86_64/wheel/puresasl
+18.77   copying build/lib/puresasl/mechanisms.py -> build/bdist.linux-x86_64/wheel/puresasl
+18.77   copying build/lib/puresasl/__init__.py -> build/bdist.linux-x86_64/wheel/puresasl
+18.78   running install_egg_info
+18.78   running egg_info
+18.78   writing pure_sasl.egg-info/PKG-INFO
+18.78   writing dependency_links to pure_sasl.egg-info/dependency_links.txt
+18.78   writing requirements to pure_sasl.egg-info/requires.txt
+18.78   writing top-level names to pure_sasl.egg-info/top_level.txt
+18.78   reading manifest file 'pure_sasl.egg-info/SOURCES.txt'
+18.78   reading manifest template 'MANIFEST.in'
+18.79   writing manifest file 'pure_sasl.egg-info/SOURCES.txt'
+18.79   Copying pure_sasl.egg-info to build/bdist.linux-x86_64/wheel/pure_sasl-0.6.2-py3.9.egg-info
+18.79   running install_scripts
+18.82   adding license file "LICENSE" (matched pattern "LICEN[CS]E*")
+18.82   creating build/bdist.linux-x86_64/wheel/pure_sasl-0.6.2.dist-info/WHEEL
+18.82   creating '/tmp/pip-wheel-n90v0gjb/pure_sasl-0.6.2-py3-none-any.whl' and adding 'build/bdist.linux-x86_64/wheel' to it
+18.82   adding 'puresasl/__init__.py'
+18.82   adding 'puresasl/client.py'
+18.82   adding 'puresasl/mechanisms.py'
+18.82   adding 'pure_sasl-0.6.2.dist-info/LICENSE'
+18.82   adding 'pure_sasl-0.6.2.dist-info/METADATA'
+18.82   adding 'pure_sasl-0.6.2.dist-info/WHEEL'
+18.82   adding 'pure_sasl-0.6.2.dist-info/top_level.txt'
+18.82   adding 'pure_sasl-0.6.2.dist-info/RECORD'
+18.82   removing build/bdist.linux-x86_64/wheel
+18.85   Building wheel for pure-sasl (setup.py): finished with status 'done'
+18.85   Created wheel for pure-sasl: filename=pure_sasl-0.6.2-py3-none-any.whl size=11427 sha256=82d19cd87e3c858b99f87fe9f1aa11abb10384e1738152a1117b0a49f1145c9e
+18.85   Stored in directory: /root/.cache/pip/wheels/46/87/60/7fb7069c8135d081326017206a8481795191246b680e2ff67a
+18.86 Successfully built google-pso-data-validator thrift pure-sasl
+19.51 Installing collected packages: sqlglot, pytz, pure-sasl, bitarray, zipp, xxhash, urllib3, uritemplate, tzdata, typing-extensions, tqdm, toolz, tabulate, sqlparse, six, PyYAML, pyparsing, PyMySQL, pygments, pyasn1, psycopg2-binary, protobuf, platformdirs, parsy, packaging, oauthlib, numpy, mdurl, MarkupSafe, jellyfish, itsdangerous, idna, grpcio, greenlet, google-crc32c, fsspec, click, charset-normalizer, certifi, cachetools, blinker, bidict, atpublic, Werkzeug, thrift, SQLAlchemy, rsa, requests, python-dateutil, pyasn1-modules, pyarrow, proto-plus, multipledispatch, markdown-it-py, Jinja2, importlib-metadata, httplib2, grpc-interceptor, googleapis-common-protos, google-resumable-media, thrift-sasl, rich, requests-oauthlib, pooch, pandas, grpcio-status, google-auth, Flask, impyla, grpc-google-iam-v1, google-auth-oauthlib, google-auth-httplib2, google-api-core, pydata-google-auth, ibis-framework, google-cloud-core, google-api-python-client, google-cloud-storage, google-cloud-spanner, google-cloud-secret-manager, google-cloud-bigquery-storage, google-cloud-bigquery, google-pso-data-validator
+20.62   changing mode of /usr/local/bin/tqdm to 755
+20.73   changing mode of /usr/local/bin/tabulate to 755
+20.79   changing mode of /usr/local/bin/sqlformat to 755
+22.04   changing mode of /usr/local/bin/pygmentize to 755
+25.67   changing mode of /usr/local/bin/f2py to 755
+26.64   changing mode of /usr/local/bin/normalizer to 755
+28.30   changing mode of /usr/local/bin/pyrsa-decrypt to 755
+28.30   changing mode of /usr/local/bin/pyrsa-encrypt to 755
+28.30   changing mode of /usr/local/bin/pyrsa-keygen to 755
+28.30   changing mode of /usr/local/bin/pyrsa-priv2pub to 755
+28.30   changing mode of /usr/local/bin/pyrsa-sign to 755
+28.30   changing mode of /usr/local/bin/pyrsa-verify to 755
+30.71   changing mode of /usr/local/bin/markdown-it to 755
+37.64   changing mode of /usr/local/bin/flask to 755
+38.56   changing mode of /usr/local/bin/google-oauthlib-tool to 755
+39.94 ERROR: Exception:
+39.94 Traceback (most recent call last):
+39.94   File "/usr/local/lib/python3.9/py_compile.py", line 144, in compile
+39.94     code = loader.source_to_code(source_bytes, dfile or file,
+39.94   File "<frozen importlib._bootstrap_external>", line 853, in source_to_code
+39.94   File "<frozen importlib._bootstrap>", line 228, in _call_with_frames_removed
+39.94   File "/usr/local/lib/python3.9/site-packages/ibis/common/tests/test_grounds_py310.py", line 37
+39.94     match one:
+39.94           ^
+39.94 SyntaxError: invalid syntax
+39.94 
+39.94 During handling of the above exception, another exception occurred:
+39.94 
+39.94 Traceback (most recent call last):
+39.94   File "/usr/local/lib/python3.9/compileall.py", line 238, in compile_file
+39.94     ok = py_compile.compile(fullname, cfile, dfile, True,
+39.94   File "/usr/local/lib/python3.9/py_compile.py", line 150, in compile
+39.94     raise py_exc
+39.94 py_compile.PyCompileError:   File "/usr/local/lib/python3.9/site-packages/ibis/common/tests/test_grounds_py310.py", line 37
+39.94     match one:
+39.94           ^
+39.94 SyntaxError: invalid syntax
+39.94 
+39.94 
+39.94 During handling of the above exception, another exception occurred:
+39.94 
+39.94 Traceback (most recent call last):
+39.94   File "/usr/local/lib/python3.9/site-packages/pip/_internal/cli/base_command.py", line 105, in _run_wrapper
+39.94     status = _inner_run()
+39.94   File "/usr/local/lib/python3.9/site-packages/pip/_internal/cli/base_command.py", line 96, in _inner_run
+39.94     return self.run(options, args)
+39.94   File "/usr/local/lib/python3.9/site-packages/pip/_internal/cli/req_command.py", line 68, in wrapper
+39.94     return func(self, options, args)
+39.94   File "/usr/local/lib/python3.9/site-packages/pip/_internal/commands/install.py", line 459, in run
+39.94     installed = install_given_reqs(
+39.94   File "/usr/local/lib/python3.9/site-packages/pip/_internal/req/__init__.py", line 83, in install_given_reqs
+39.94     requirement.install(
+39.94   File "/usr/local/lib/python3.9/site-packages/pip/_internal/req/req_install.py", line 867, in install
+39.94     install_wheel(
+39.94   File "/usr/local/lib/python3.9/site-packages/pip/_internal/operations/install/wheel.py", line 728, in install_wheel
+39.94     _install_wheel(
+39.94   File "/usr/local/lib/python3.9/site-packages/pip/_internal/operations/install/wheel.py", line 614, in _install_wheel
+39.94     success = compileall.compile_file(path, force=True, quiet=True)
+39.94   File "/usr/local/lib/python3.9/compileall.py", line 255, in compile_file
+39.94     msg = err.msg.encode(sys.stdout.encoding,
+39.94 TypeError: encode() argument 'encoding' must be str, not None
+40.17 
+------
+
+ 1 warning found (use docker --debug to expand):
+ - WorkdirRelativePath: Relative workdir "professional-services-data-validator" can have unexpected results if the base image changes (line 8)
+Dockerfile:9
+--------------------
+   7 |     RUN git clone https://github.com/GoogleCloudPlatform/professional-services-data-validator.git
+   8 |     WORKDIR professional-services-data-validator
+   9 | >>> RUN pip install . -v
+  10 |     ENTRYPOINT ["python","-m","data_validation"]
+  11 |     
+--------------------
+ERROR: failed to solve: process "/bin/sh -c pip install . -v" did not complete successfully: exit code: 2
+rm: cannot remove 'google_pso_data_validator-7.6.0-py2.py3-none-any.whl': No such file or directory
