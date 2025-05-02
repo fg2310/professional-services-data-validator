@@ -379,8 +379,7 @@ def test_column_validation_tricky_dates_to_bigquery():
 )
 def test_column_validation_large_decimals_to_bigquery():
     """SQL Server to BigQuery dvt_large_decimals column validation."""
-    # TODO When issue-1079 is complete add col_dec_38_30 to --hash string below.
-    cols = "col_dec_18,col_dec_38,col_dec_38_9"
+    cols = "col_dec_18,col_dec_38,col_dec_38_9,col_dec_38_30"
     column_validation_test(
         tables="pso_data_validator.dvt_large_decimals",
         tc="bq-conn",
@@ -418,10 +417,7 @@ def test_column_validation_large_decimals_to_bigquery_mismatch():
 )
 def test_row_validation_core_types():
     """SQL Server to SQL Server dvt_core_types row validation"""
-    # TODO When issue-834 is complete add col_string to --hash string below.
-    cols = ",".join(
-        [_ for _ in DVT_CORE_TYPES_COLUMNS if _ not in ("id", "col_string")]
-    )
+    cols = ",".join([_ for _ in DVT_CORE_TYPES_COLUMNS if _ not in ("id")])
     row_validation_test(
         tc="mock-conn",
         hash=cols,
@@ -448,10 +444,7 @@ def test_row_validation_core_types_auto_pks():
 )
 def test_row_validation_core_types_to_bigquery():
     """SQL Server to BigQuery dvt_core_types row validation"""
-    # TODO When issue-834 is complete add col_string to --hash string below.
-    cols = ",".join(
-        [_ for _ in DVT_CORE_TYPES_COLUMNS if _ not in ("id", "col_string")]
-    )
+    cols = ",".join([_ for _ in DVT_CORE_TYPES_COLUMNS if _ not in ("id")])
     row_validation_test(
         tc="bq-conn",
         hash=cols,
@@ -470,8 +463,7 @@ def test_row_validation_large_decimals_to_bigquery():
     row_validation_test(
         tables="pso_data_validator.dvt_large_decimals",
         tc="bq-conn",
-        # TODO When issue-1079 is complete add col_dec_38_30 to --hash string below.
-        hash="id,col_data,col_dec_18,col_dec_38,col_dec_38_9",
+        hash="id,col_data,col_dec_18,col_dec_38,col_dec_38_9,col_dec_38_30",
     )
 
 

@@ -90,6 +90,7 @@ def sa_format_binary_length(translator, op):
 
 def sa_format_hashbytes(translator, op):
     arg = translator.translate(op.arg)
+    breakpoint()
     cast_arg = sa.func.convert(sa.sql.literal_column("VARCHAR(MAX)"), arg)
     hash_func = sa.func.hashbytes(sa.sql.literal_column("'SHA2_256'"), cast_arg)
     hash_to_string = sa.func.convert(
