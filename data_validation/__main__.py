@@ -662,6 +662,7 @@ def validate(args):
 def main():
     # Create Parser and Get Deployment Info
     args = cli_tools.get_parsed_args()
+    breakpoint()
     logging.basicConfig(
         level=LOG_LEVEL_MAP[args.log_level],
         format="%(asctime)s-%(levelname)s: %(message)s",
