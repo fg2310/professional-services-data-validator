@@ -61,7 +61,7 @@ from ibis.backends.postgres.compiler import PostgreSQLExprTranslator
 from ibis.expr.types import BinaryValue, NumericValue, StringValue, TemporalValue
 
 # Do not remove these lines, they trigger patching of Ibis code.
-import third_party.ibis.ibis_biquery.api  # noqa
+import third_party.ibis.ibis_bigquery.api  # noqa
 import third_party.ibis.ibis_mysql.compiler  # noqa
 from third_party.ibis.ibis_mssql import registry as mssql_registry
 from third_party.ibis.ibis_postgres import registry as postgres_registry
