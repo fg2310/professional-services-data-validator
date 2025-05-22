@@ -417,7 +417,10 @@ def test_column_validation_large_decimals_to_bigquery_mismatch():
 )
 def test_row_validation_core_types():
     """SQL Server to SQL Server dvt_core_types row validation"""
-    cols = ",".join([_ for _ in DVT_CORE_TYPES_COLUMNS if _ not in ("id")])
+    # TODO When issue-834 is complete add col_string to --hash string below.
+    cols = ",".join(
+        [_ for _ in DVT_CORE_TYPES_COLUMNS if _ not in ("id", "col_string")]
+    )
     row_validation_test(
         tc="mock-conn",
         hash=cols,
@@ -444,7 +447,10 @@ def test_row_validation_core_types_auto_pks():
 )
 def test_row_validation_core_types_to_bigquery():
     """SQL Server to BigQuery dvt_core_types row validation"""
-    cols = ",".join([_ for _ in DVT_CORE_TYPES_COLUMNS if _ not in ("id")])
+    # TODO When issue-834 is complete add col_string to --hash string below.
+    cols = ",".join(
+        [_ for _ in DVT_CORE_TYPES_COLUMNS if _ not in ("id", "col_string")]
+    )
     row_validation_test(
         tc="bq-conn",
         hash=cols,
