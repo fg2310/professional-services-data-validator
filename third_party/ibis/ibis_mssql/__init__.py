@@ -15,6 +15,9 @@ from __future__ import annotations
 
 from typing import Literal
 
+import pandas
+import warnings
+
 import sqlalchemy as sa
 from ibis.backends.base.sql.alchemy import BaseAlchemyBackend
 from ibis.backends.mssql.compiler import MsSqlCompiler
@@ -30,6 +33,7 @@ class Backend(BaseAlchemyBackend):
     name = "mssql"
     compiler = MsSqlCompiler
     supports_create_or_replace = False
+    LOCK_SQL = "WITH (ROWLOCK)"
 
     _sqlglot_dialect = "tsql"
 
@@ -81,6 +85,7 @@ class Backend(BaseAlchemyBackend):
             with dbapi_connection.cursor() as cur:
                 cur.execute("SET DATEFIRST 1")
 
+        self.client = engine
         return super().do_connect(engine)
 
     def _metadata(self, query):
@@ -109,3 +114,74 @@ class Backend(BaseAlchemyBackend):
         with self.begin() as con:
             result = con.exec_driver_sql(list_pk_col_sql, parameters=(database, table))
             return [_[0] for _ in result.cursor.fetchall()]
+
+    LIST_DATABASE_SQL = """
+        SELECT schema_name FROM information_schema.schemata
+        WHERE schema_name LIKE '%{schema_like}%'
+    """
+
+    def list_databases(self, like=None):
+        schema_like = like or ""
+
+        list_database_sql = self.LIST_DATABASE_SQL.format(schema_like=schema_like)
+        databases_df = self._execute(list_database_sql, results=True)
+
+        return list(databases_df.schema_name.str.rstrip())
+
+    LIST_TABLE_SQL = """
+        SELECT table_name
+        FROM information_schema.tables
+        WHERE table_schema LIKE '%{schema_like}%'
+        AND table_name LIKE '%{table_like}%'
+        AND table_type LIKE '{type_like}'
+    """
+
+    def list_tables(self, like=None, schema=None, type_like: str = "%") -> list:
+        schema = schema or ""
+        table = like or ""
+
+        list_table_sql = self.LIST_TABLE_SQL.format(
+            schema_like=schema, table_like=table, type_like=type_like
+        )
+        tables_df = self._execute(list_table_sql, results=True)
+        return list(tables_df.table_name.str.rstrip())
+
+    def dvt_list_tables(self, like=None, database=None) -> list:
+        """Duplicate of list_tables() but only returning tables in the output."""
+        return self.list_tables(like=like, schema=database, type_like="BASE TABLE")
+
+    def _execute(self, sql, results=False, params=None):
+        import re
+
+        def add_rowlock_to_select(sql):
+            # Only add ROWLOCK to SELECTs from user tables, not system views
+            # This regex matches: FROM [schema.]table (with optional alias)
+            pattern = re.compile(
+                r"(FROM\s+(\[?\w+\]?\.)?\[?\w+\]?)(\s+AS\s+\w+)?", re.IGNORECASE
+            )
+            # Do not add ROWLOCK to information_schema or sys tables
+            if (
+                "information_schema" in sql.lower()
+                or "sys." in sql.lower()
+                or "sysobjects" in sql.lower()
+            ):
+                return sql
+
+            # Insert 'WITH (ROWLOCK)' after the table name
+            def replacer(match):
+                return f"{match.group(1)}{ self.LOCK_SQL}{match.group(3) or ''}"
+
+            return pattern.sub(replacer, sql, count=1)
+
+        if self.LOCK_SQL and sql.strip().upper().startswith("SELECT"):
+            sql = add_rowlock_to_select(sql)
+
+        with warnings.catch_warnings():
+            # Suppress pandas warning of SQLAlchemy connectable DB support
+            warnings.simplefilter("ignore")
+            df = pandas.read_sql(sql, self.client, params=params)
+
+        if results:
+            return df
+
+        return None
