@@ -15,15 +15,11 @@ from __future__ import annotations
 
 from typing import Literal
 
-import pandas
-import warnings
-
 import sqlalchemy as sa
 from ibis.backends.base.sql.alchemy import BaseAlchemyBackend
 from ibis.backends.mssql.compiler import MsSqlCompiler
 from ibis.backends.mssql.datatypes import _type_from_result_set_info
 
-import third_party.ibis.ibis_mssql.datatypes
 import json
 
 
