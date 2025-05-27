@@ -216,7 +216,6 @@ def schema_validation_matching(
                         consts.VALIDATION_STATUS_FAIL,
                     ]
                 )
-
     # Source field doesn't exist
     for target_field_name, target_field_type in target_fields_casefold.items():
         if target_field_name not in source_fields_casefold:
@@ -237,8 +236,10 @@ def split_allow_list_str(allow_list_str: str) -> list:
     # I've not moved this patter to a compiled constant because it should only
     # happen once per command and I felt splitting the pattern into variables
     # aided readability.
-    nullable_pattern = r"!?"
-    precision_scale_pattern = r"(?:\((?:[0-9 ,\-]+|'UTC')\))?"
+    nullable_pattern = r"!?"  # Matches an optional '!'
+    # Matches precision/scale like (N), (N,M), ('UTC'), or (N, 'UTC')
+    # Crucially, [0-9 ,-]+ allows for digits, spaces, commas, and hyphens (for ranges like "1-18").
+    precision_scale_pattern = r"(?:\((?:[0-9 ,-]+(?:,[ ]*'UTC')?|'UTC')\))?"
     data_type_pattern = nullable_pattern + r"[a-z0-9 ]+" + precision_scale_pattern
     csv_split_pattern = data_type_pattern + r":" + data_type_pattern
     data_type_pairs = [
