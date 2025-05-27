@@ -148,35 +148,35 @@ def test_sql_server_row(cloud_sql):
                 "source_calculated_columns": ["content"],
                 "target_calculated_columns": ["content"],
                 "field_alias": "cast__content",
-                "type": "cast",
+                "type": consts.CALC_FIELD_CAST,
                 "depth": 0,
             },
             {
                 "source_calculated_columns": ["cast__content"],
                 "target_calculated_columns": ["cast__content"],
                 "field_alias": "ifnull__cast__content",
-                "type": "ifnull",
+                "type": consts.CALC_FIELD_IFNULL,
                 "depth": 1,
             },
             {
                 "source_calculated_columns": ["ifnull__cast__content"],
                 "target_calculated_columns": ["ifnull__cast__content"],
                 "field_alias": "rstrip__ifnull__cast__content",
-                "type": "rstrip",
+                "type": consts.CALC_FIELD_RSTRIP,
                 "depth": 2,
             },
             {
                 "source_calculated_columns": ["rstrip__ifnull__cast__content"],
                 "target_calculated_columns": ["rstrip__ifnull__cast__content"],
                 "field_alias": "upper__rstrip__ifnull__cast__content",
-                "type": "upper",
+                "type": consts.CALC_FIELD_UPPER,
                 "depth": 3,
             },
             {
                 "source_calculated_columns": ["upper__rstrip__ifnull__cast__content"],
                 "target_calculated_columns": ["upper__rstrip__ifnull__cast__content"],
                 "field_alias": "hash__all",
-                "type": "hash",
+                "type": consts.CALC_FIELD_HASH,
                 "depth": 4,
             },
         ],
@@ -630,7 +630,6 @@ def test_custom_query_row_hash_validation_core_types_to_bigquery():
 )
 def test_find_tables():
     """SQL Server to BigQuery test of find-tables command."""
-    pytest.skip("Skipping test_find_tables until issue 1198 has been resolved.")
     find_tables_test()
 
 
