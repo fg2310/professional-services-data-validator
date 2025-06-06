@@ -13,12 +13,12 @@
 # limitations under the License.
 
 import sqlalchemy as sa
-import string
 
 from ibis.backends.base.sql.alchemy import (
     get_sqla_table,
 )
 from ibis.backends.base.sql.alchemy.registry import get_col
+from ibis.backends.base.sql.alchemy.registry import _cast as sa_fixed_cast
 
 
 def sa_table_column(t, op):
@@ -91,15 +91,64 @@ def sa_format_binary_length(translator, op):
 
 def sa_format_hashbytes(translator, op):
     arg = translator.translate(op.arg)
-    # Explicitly cast to VARCHAR(MAX) *within* the hashbytes function
-    hash_func = sa.func.hashbytes(
-        sa.sql.literal_column("'SHA2_256'"),
-        sa.func.CAST(arg, sa.VARCHAR(length=None)),  # SQL-level cast
-    )
+    cast_arg = sa.func.convert(sa.sql.literal_column("VARCHAR(MAX)"), arg)
+    hash_func = sa.func.hashbytes(sa.sql.literal_column("'SHA2_256'"), cast_arg)
     hash_to_string = sa.func.convert(
         sa.sql.literal_column("CHAR(64)"), hash_func, sa.sql.literal_column("2")
     )
     return sa.func.lower(hash_to_string)
+
+
+def sa_cast_mssql(t, op):
+    arg = op.arg
+    typ = op.to
+    arg_dtype = arg.output_dtype
+
+    sa_arg = t.translate(arg)
+    # Specialize going from a binary float type to a string.
+    if (arg_dtype.is_float32() or arg_dtype.is_float64()) and typ.is_string():
+        # This prevents output in scientific notation, at least for my tests it did.
+        return sa.func.format(sa_arg, "G")
+    elif arg_dtype.is_binary() and typ.is_string():
+        # Binary to string cast is a "to hex" conversion for DVT.
+        return sa.func.lower(
+            sa.func.convert(sa.text("VARCHAR(MAX)"), sa_arg, sa.literal(2))
+        )
+    elif arg_dtype.is_string() and typ.is_binary():
+        # Binary from string cast is a "from hex" conversion for DVT.
+        return sa.func.convert(sa.text("VARBINARY(MAX)"), sa_arg, sa.literal(2))
+    # Specialize going from DECIMAL(p,s>0) to string
+    elif (
+        arg_dtype.is_decimal()
+        and arg_dtype.scale
+        and arg_dtype.scale > 0
+        and typ.is_string()
+    ):
+        scale = arg_dtype.scale
+        # Considering any number of fractional digits
+        format_string = f'0.{("#" * scale)}'
+        formatted_value = sa.func.format(sa_arg, format_string)
+        # Replace trailing '.0' with ''
+        return sa.func.replace(formatted_value, ".0", "")
+
+    # Follow the original Ibis code path.
+    return sa_fixed_cast(t, op)
+
+
+def sa_format_new_id(t, op):
+    return sa.func.NEWID()
+
+
+def sa_string_join(t, op):
+    if (
+        len(op.arg) == 1
+    ):  # SQL Server CONCAT errs when there is one column being hashed (issue-1202), renaming using type_coerce rather than CONCAT
+        return sa.type_coerce(
+            t.translate(op.arg[0]),
+            sa.types.String,
+        )
+    else:
+        return sa.func.concat(*map(t.translate, op.arg))
 
 
 def sa_whitespace_rstrip(t, op):
