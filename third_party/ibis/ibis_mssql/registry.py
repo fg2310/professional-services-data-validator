@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import sqlalchemy as sa
+import string
 
 from ibis.backends.base.sql.alchemy import (
     get_sqla_table,
@@ -90,10 +91,17 @@ def sa_format_binary_length(translator, op):
 
 def sa_format_hashbytes(translator, op):
     arg = translator.translate(op.arg)
-    # breakpoint()
-    cast_arg = sa.func.convert(sa.sql.literal_column("VARCHAR(MAX)"), arg)
-    hash_func = sa.func.hashbytes(sa.sql.literal_column("'SHA2_256'"), cast_arg)
+    # Explicitly cast to VARCHAR(MAX) *within* the hashbytes function
+    hash_func = sa.func.hashbytes(
+        sa.sql.literal_column("'SHA2_256'"),
+        sa.func.CAST(arg, sa.VARCHAR(length=None)),  # SQL-level cast
+    )
     hash_to_string = sa.func.convert(
         sa.sql.literal_column("CHAR(64)"), hash_func, sa.sql.literal_column("2")
     )
     return sa.func.lower(hash_to_string)
+
+
+def sa_whitespace_rstrip(t, op):
+    sa_arg = t.translate(op.arg)
+    return sa.func.rtrim(sa.cast(sa_arg, sa.VARCHAR(length=None)))

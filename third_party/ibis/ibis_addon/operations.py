@@ -464,12 +464,17 @@ def _sa_string_join(t, op):
     if (
         len(op.arg) == 1
     ):  # SQL Server CONCAT errs when there is one column being hashed (issue #1202), renaming using type_coerce rather than CONCAT
-        return sa.type_coerce(
+        # Explicitly cast to VARCHAR(MAX)
+        return sa.cast(
             t.translate(op.arg[0]),
-            sa.types.String,
+            sa.VARCHAR(length=None),  # SQL-level cast
         )
     else:
-        return sa.func.concat(*map(t.translate, op.arg))
+        # Explicitly cast all arguments to VARCHAR(MAX) before concatenation
+        casted_args = [
+            sa.cast(t.translate(arg), sa.VARCHAR(length=None)) for arg in op.arg
+        ]
+        return sa.func.concat(*casted_args)
 
 
 def sa_format_new_id(t, op):
@@ -637,8 +642,7 @@ MsSqlExprTranslator._registry[ops.Cast] = sa_cast_mssql
 MsSqlExprTranslator._registry[BinaryLength] = mssql_registry.sa_format_binary_length
 MsSqlExprTranslator._registry[ops.TableColumn] = mssql_registry.sa_table_column
 MsSqlExprTranslator._registry[ops.ExtractEpochSeconds] = mssql_registry.sa_epoch_seconds
-# TODO Uncomment the line below when working on issue-1419.
-# MsSqlExprTranslator._registry[ops.RStrip] = _sa_whitespace_rstrip
+MsSqlExprTranslator._registry[ops.RStrip] = mssql_registry.sa_whitespace_rstrip
 MsSqlExprTranslator._registry[PaddedCharLength] = MsSqlExprTranslator._registry[
     ops.StringLength
 ]
