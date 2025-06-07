@@ -196,6 +196,7 @@ data-validation connections add
     --user USER                                         Oracle user
     --password PASSWORD                                 Oracle password
     --database DATABASE                                 Oracle database
+    [--connect-args CONNECT_ARGS]                       Additional connection arguments, default {}
     [--url URL]                                         SQLAlchemy connection URL
 ```
 
