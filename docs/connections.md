@@ -196,6 +196,7 @@ data-validation connections add
     --user USER                                         Oracle user
     --password PASSWORD                                 Oracle password
     --database DATABASE                                 Oracle database
+    [--protocol PROTOCOL]                               Oracle networking protocol (TPC, TPCS)
     [--connect-args CONNECT_ARGS]                       Additional connection arguments, default {}
     [--url URL]                                         SQLAlchemy connection URL
 ```
@@ -206,7 +207,24 @@ data-validation connections add
 * READ or SELECT on any tables to be validated
 * Optional - Read on SYS.V_$TRANSACTION (required to get isolation level, if privilege is not given then will default to Read Committed, [more_details](https://docs.sqlalchemy.org/en/14/dialects/oracle.html#transaction-isolation-level-autocommit))
 
-### Using an Oracle wallet
+### Using an Oracle wallet for encryption
+
+After creating an Oracle wallet a `.pem` file must be generated as described in the [python-oracledb documentation](https://python-oracledb.readthedocs.io/en/latest/user_guide/connection_handling.html#creating-a-pem-file-for-python-oracledb-thin-mode).
+
+With the `.pem` file in place we can create a connect as in the example below:
+```
+data-validation connections add \
+ --connection-name oracle_tls Oracle \
+ --host=10.1.1.1 --port=1522 \
+ --user=dvt_user --password=${DVT_PASS} \
+ --database=xepdb1 \
+ --protocol=TCPS \
+ --connect-args='{"wallet_location": "/opt/oracle/wallet"}'
+```
+
+### Using an Oracle wallet for encryption
+
+TODO This section is out of date
 
 After creating an Oracle wallet and supporting configuration you can add the connection using the `--url` option, remembering to set `TNS_ADMIN` correctly before doing so. For example:
 

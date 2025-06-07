@@ -98,6 +98,7 @@ CONNECTION_SOURCE_FIELDS = {
         ["user", "User used to connect"],
         ["password", "Password for supplied user"],
         ["database", "Database to connect to"],
+        ["protocol", "Oracle networking protocol (default TPC)"],
         ["connect_args", "(Optional) Additional connection argument mapping"],
         ["url", "Oracle SQLAlchemy connection URL"],
     ],
