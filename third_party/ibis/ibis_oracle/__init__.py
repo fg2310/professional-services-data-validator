@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Iterable, Literal, Tuple
+from typing import Iterable, Literal, Tuple, Dict, Any
 
 import sqlalchemy as sa
 from sqlalchemy.dialects.oracle.base import (
@@ -26,6 +26,7 @@ import ibis.expr.datatypes as dt
 from ibis.backends.base.sql.alchemy import BaseAlchemyBackend
 from third_party.ibis.ibis_oracle.compiler import OracleCompiler
 from third_party.ibis.ibis_oracle.datatypes import _get_type
+import oracledb
 
 
 EXTRA_RESERVED_WORDS = set(
@@ -99,30 +100,34 @@ class Backend(BaseAlchemyBackend):
         port: int = 1521,
         database: str = None,
         protocol: str = "TCP",
-        url: str = None,
+        thick_mode: bool = False,
         driver: Literal["oracledb"] = "oracledb",
-        connect_args: str = None,
+        connect_args: Dict[str, Any] = {},
     ) -> None:
-        if url is None:
-            if driver != "oracledb":
-                raise NotImplementedError(
-                    "oracledb is currently the only supported driver"
-                )
-            dsn = """(description=(address=(protocol={})(host={})(port={}))(connect_data=(service_name={})))""".format(
-                protocol, host, port, database
-            )
-            sa_url = sa.engine.url.URL.create(
-                "oracle+oracledb",
-                user,
-                password,
-                dsn,
-            )
-        else:
-            sa_url = sa.engine.url.make_url(url)
-
-        self.database_name = sa_url.database
+        if driver != "oracledb":
+            raise NotImplementedError("oracledb is currently the only supported driver")
+        thick_mode = True
+        database = 'xepdb1'
+        connect_args={'dsn':'XEPDB1'}
+        breakpoint()
+        if thick_mode:
+            oracledb.init_oracle_client(config_dir=connect_args.get("config_dir", None))
+        connect_args.update(
+            {
+                "host": "10.128.15.246",
+                # "user": user,
+                # "password": password,
+                "port": 1521,
+                "service_name": 'xepdb1',
+                "protocol": protocol,
+            }
+        )
+        self.database_name = connect_args[
+            "service_name"
+        ]  # key will be present because of update statement
+        breakpoint()
         engine = sa.create_engine(
-            sa_url,
+            "oracle+oracledb://@",
             poolclass=sa.pool.StaticPool,
             arraysize=self.arraysize,
             # The hardcoding of 128 below is not great but is the simplest way of dealing with:
