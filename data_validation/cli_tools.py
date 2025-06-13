@@ -96,9 +96,11 @@ CONNECTION_SOURCE_FIELDS = {
         ["host", "Desired Oracle host"],
         ["port", "Oracle port to connect on"],
         ["user", "User used to connect"],
+        ["thick_mode", "Flag indicating thick_mode"],
         ["password", "Password for supplied user"],
         ["database", "Database to connect to"],
-        ["url", "Oracle SQLAlchemy connection URL"],
+        ["protocol", "Oracle networking protocol (default TPC)"],
+        ["connect_args", "(Optional) Additional connection argument mapping"],
     ],
     consts.SOURCE_TYPE_MSSQL: [
         ["host", "Desired SQL Server host (default localhost)"],
@@ -121,7 +123,7 @@ CONNECTION_SOURCE_FIELDS = {
         ["password", "Password for authentication of user"],
         ["account", "Snowflake account to connect to"],
         ["database", "Database in snowflake to connect to"],
-        ["connect_args", "(Optional) Additional connection arg mapping"],
+        ["connect_args", "(Optional) Additional connection argument mapping"],
     ],
     consts.SOURCE_TYPE_POSTGRES: [
         ["host", "Desired PostgreSQL host."],
@@ -539,7 +541,12 @@ def _configure_database_specific_parsers(parser):
         for field_obj in CONNECTION_SOURCE_FIELDS[database]:
             arg_field = "--" + field_obj[0].replace("_", "-")
             help_txt = field_obj[1]
-            db_parser.add_argument(arg_field, help=help_txt)
+            if (
+                field_obj[0] == "thick_mode" and database == consts.SOURCE_TYPE_ORACLE
+            ):  # flag
+                db_parser.add_argument(arg_field, help=help_txt, action="store_true")
+            else:
+                db_parser.add_argument(arg_field, help=help_txt)
 
 
 def _configure_validate_parser(subparsers):
