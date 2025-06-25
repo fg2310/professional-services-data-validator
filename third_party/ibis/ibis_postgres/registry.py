@@ -35,7 +35,7 @@ def sa_epoch_seconds(translator, op):
     )
 
 
-def sa_cast_postgres(t, op):
+def sa_cast(t, op):
     arg = op.arg
     typ = op.to
     arg_dtype = arg.output_dtype
@@ -66,12 +66,6 @@ def sa_cast_postgres(t, op):
                 + ("9" * arg_dtype.scale)
             )
             return sa.func.rtrim(sa.func.to_char(sa_arg, fmt), ".")
-    elif arg_dtype.is_binary() and typ.is_string():
-        # Binary to string cast is a "to hex" conversion for DVT.
-        return sa.func.encode(sa_arg, sa.literal("hex"))
-    elif arg_dtype.is_string() and typ.is_binary():
-        # Binary from string cast is a "from hex" conversion for DVT.
-        return sa.func.decode(sa_arg, sa.literal("hex"))
 
     # Follow the original Ibis code path.
     return sa_fixed_cast(t, op)
@@ -84,3 +78,15 @@ def sa_format_postgres_padded_char_length(translator, op):
     """
     arg = translator.translate(op.arg)
     return sa.func.char_length(sa.func.concat(arg, sa.text("''")))
+
+
+def to_hex(t, op):
+    # Binary to string is a "to hex" conversion for DVT.
+    sa_arg = t.translate(op.arg)
+    return sa.func.encode(sa_arg, sa.literal("hex"))
+
+
+def from_hex(t, op):
+    # Binary to string is a "from hex" conversion for DVT.
+    sa_arg = t.translate(op.arg)
+    return sa.func.decode(sa_arg, sa.literal("hex"))

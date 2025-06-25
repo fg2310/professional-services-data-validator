@@ -132,12 +132,6 @@ def _cast(t, op):
                 f"ELSE TO_CHAR({sa_arg}) END"
             )
         )
-    elif arg_dtype.is_binary() and typ.is_string():
-        # Binary to string cast is a "to hex" conversion for DVT.
-        return sa.func.lower(sa.func.rawtohex(sa_arg))
-    elif arg_dtype.is_string() and typ.is_binary():
-        # Binary from string cast is a "from hex" conversion for DVT.
-        return sa.func.hextoraw(sa_arg)
     elif (arg_dtype.is_float32() or arg_dtype.is_float64()) and typ.is_string():
         # Specialize going from a binary float type to a string.
         # This prevents output in scientific notation but we still have
@@ -447,6 +441,30 @@ def _extract_epoch(t, op):
         sa.dialects.oracle.NUMBER(38, 0),
     )
     return mult
+
+
+def sa_format_binary_length(translator, op):
+    arg = translator.translate(op.arg)
+    return sa.func.dbms_lob.getlength(arg)
+
+
+def sa_format_hashbytes(translator, op):
+    arg = translator.translate(op.arg)
+    convert = sa.func.convert(arg, sa.sql.literal_column("'UTF8'"))
+    hash_func = sa.func.standard_hash(convert, sa.sql.literal_column("'SHA256'"))
+    return sa.func.lower(hash_func)
+
+
+def to_hex(t, op):
+    # Binary to string is a "to hex" conversion for DVT.
+    sa_arg = t.translate(op.arg)
+    return sa.func.lower(sa.func.rawtohex(sa_arg))
+
+
+def from_hex(t, op):
+    # Binary to string is a "from hex" conversion for DVT.
+    sa_arg = t.translate(op.arg)
+    return sa.func.hextoraw(sa_arg)
 
 
 operation_registry.update(

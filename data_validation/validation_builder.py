@@ -291,40 +291,52 @@ class ValidationBuilder(object):
         cast = primary_key.get(consts.CONFIG_CAST)
         config_manager = self.config_manager
         if self.validation_type == consts.CUSTOM_QUERY:
-            table = self.config_manager.get_source_ibis_table_from_query()
+            source_table = self.config_manager.get_source_ibis_table_from_query()
+            target_table = self.config_manager.get_target_ibis_table_from_query()
         else:
-            table = self.config_manager.get_source_ibis_table()
-        # If a string is padded, it will need to be trimmed
-        trim = (
-            self.is_padded_char(
-                config_manager.source_client,
-                config_manager.get_source_raw_data_types(),
-                source_field_name,
+            source_table = self.config_manager.get_source_ibis_table()
+            target_table = self.config_manager.get_target_ibis_table()
+        if primary_key.get(consts.CONFIG_TYPE):
+            # We are adding a calculation rather than a pure comparison field.
+            source_field = getattr(CalculatedField, primary_key[consts.CONFIG_TYPE])(
+                config=primary_key,
+                fields=[source_field_name],
             )
-            if table[source_field_name].type().is_string()
-            else False
-        )
-        source_field = ComparisonField(
-            field_name=source_field_name, alias=alias, cast=cast, trim=trim
-        )
+        else:
+            # If a string is padded, it will need to be trimmed
+            trim = (
+                self.is_padded_char(
+                    config_manager.source_client,
+                    config_manager.get_source_raw_data_types(),
+                    source_field_name,
+                )
+                if source_table[source_field_name].type().is_string()
+                else False
+            )
+            source_field = ComparisonField(
+                field_name=source_field_name, alias=alias, cast=cast, trim=trim
+            )
 
-        if self.validation_type == consts.CUSTOM_QUERY:
-            table = self.config_manager.get_target_ibis_table_from_query()
-        else:
-            table = self.config_manager.get_target_ibis_table()
-        # If a string is padded, it will need to be trimmed
-        trim = (
-            self.is_padded_char(
-                config_manager.target_client,
-                config_manager.get_target_raw_data_types(),
-                target_field_name,
+        if primary_key.get(consts.CONFIG_TYPE):
+            # We are adding a calculation rather than a pure comparison field.
+            target_field = getattr(CalculatedField, primary_key[consts.CONFIG_TYPE])(
+                config=primary_key,
+                fields=[target_field_name],
             )
-            if table[target_field_name].type().is_string()
-            else False
-        )
-        target_field = ComparisonField(
-            field_name=target_field_name, alias=alias, cast=cast, trim=trim
-        )
+        else:
+            # If a string is padded, it will need to be trimmed
+            trim = (
+                self.is_padded_char(
+                    config_manager.target_client,
+                    config_manager.get_target_raw_data_types(),
+                    target_field_name,
+                )
+                if target_table[target_field_name].type().is_string()
+                else False
+            )
+            target_field = ComparisonField(
+                field_name=target_field_name, alias=alias, cast=cast, trim=trim
+            )
         # check if valid calc field and return correct object
         self.source_builder.add_comparison_field(source_field)
         self.target_builder.add_comparison_field(target_field)

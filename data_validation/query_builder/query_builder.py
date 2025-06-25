@@ -409,6 +409,22 @@ class CalculatedField(object):
         )
 
     @staticmethod
+    def from_hex(config: dict, fields: list) -> "CalculatedField":
+        return CalculatedField(
+            ibis.expr.types.StringValue.from_hex,
+            config,
+            fields,
+        )
+
+    @staticmethod
+    def to_hex(config: dict, fields: list) -> "CalculatedField":
+        return CalculatedField(
+            ibis.expr.types.BinaryValue.to_hex,
+            config,
+            fields,
+        )
+
+    @staticmethod
     def custom(config, fields):
         """Returns a CalculatedField instance built for any custom ibis expression
         e.g. 'ibis.expr.api.StringValue.replace'. For a list of supported functions,

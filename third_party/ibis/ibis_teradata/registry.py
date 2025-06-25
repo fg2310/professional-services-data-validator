@@ -19,6 +19,8 @@ import string
 import warnings
 from multipledispatch import Dispatcher
 
+import sqlalchemy as sa
+from ibis.backends.base.sql.registry import identifiers
 import ibis.expr.datatypes as dt
 import ibis.expr.operations as ops
 from ibis.common.exceptions import UnsupportedOperationError
@@ -45,16 +47,6 @@ teradata_cast = Dispatcher("teradata_cast")
 @teradata_cast.register(str, dt.Timestamp, dt.Integer)
 def teradata_cast_timestamp_to_integer(compiled_arg, from_, to):
     return "UNIX_MICROS({})".format(compiled_arg)
-
-
-@teradata_cast.register(str, dt.Binary, dt.String)
-def teradata_cast_binary_to_string(compiled_arg, from_, to):
-    return "LOWER(FROM_BYTES({}, 'base16'))".format(compiled_arg)
-
-
-@teradata_cast.register(str, dt.String, dt.Binary)
-def teradata_cast_string_to_binary(compiled_arg, from_, to):
-    return "TO_BYTES({}, 'base16')".format(compiled_arg)
 
 
 @teradata_cast.register(str, dt.String, dt.Boolean)
@@ -354,6 +346,30 @@ def _literal(t, op):
         return _string_literal_format(t, op)
     else:
         return ibis_literal(t, op)
+
+
+def format_hashbytes(translator, op):
+    arg = translator.translate(op.arg)
+    if op.how == "sha256":
+        return f"rtrim(hash_sha256(TransUnicodeToUTF8({arg})))"
+    elif op.how == "sha512":
+        return f"rtrim(hash_sha512({arg}))"
+    elif op.how == "md5":
+        return f"rtrim(hash_md5({arg}))"
+    else:
+        raise ValueError(f"unexpected value for 'how': {op.how}")
+
+
+def to_hex(t, op):
+    # Binary to string is a "to hex" conversion for DVT.
+    sa_arg = t.translate(op.arg)
+    return "LOWER(FROM_BYTES({}, 'base16'))".format(sa_arg)
+
+
+def from_hex(t, op):
+    # Binary to string is a "from hex" conversion for DVT.
+    sa_arg = t.translate(op.arg)
+    return "TO_BYTES({}, 'base16')".format(sa_arg)
 
 
 """ Add New Customizations to Operations registry """

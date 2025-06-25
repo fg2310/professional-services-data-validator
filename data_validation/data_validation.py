@@ -158,9 +158,7 @@ class DataValidation(object):
         binary_conversion_required = False
         if query[source_pk_column].type().is_binary():
             binary_conversion_required = True
-            query = query.mutate(
-                **{source_pk_column: query[source_pk_column].cast("string")}
-            )
+            query = query.mutate(**{source_pk_column: query[source_pk_column].to_hex()})
 
         # If the primary key is a padded string, then update the query to ensure the string
         # is rstripped in the results.
@@ -182,7 +180,7 @@ class DataValidation(object):
             # For binary ids we have a list of hex strings for our IN list.
             # Each of these needs to be cast back to binary.
             target_values = source_values = [
-                ibis.literal(_).cast("binary") for _ in source_values
+                ibis.literal(_).from_hex() for _ in source_values
             ]
         elif query[source_pk_column].type().is_string():
             # If the source or client is Oracle and the character type is padded, we need to

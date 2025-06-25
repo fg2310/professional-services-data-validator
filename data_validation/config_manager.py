@@ -723,8 +723,12 @@ class ConfigManager(object):
                 consts.CONFIG_SOURCE_COLUMN: casefold_source_columns[column.casefold()],
                 consts.CONFIG_TARGET_COLUMN: casefold_target_columns[column.casefold()],
                 consts.CONFIG_FIELD_ALIAS: column,
-                consts.CONFIG_CAST: cast_type,
             }
+            if cast_type == consts.CONFIG_CAST_HEX_STRING:
+                cast_type = None
+                column_config[consts.CONFIG_TYPE] = consts.CALC_FIELD_TO_HEX
+            else:
+                column_config[consts.CONFIG_CAST] = cast_type
             column_configs.append(column_config)
 
         return column_configs
@@ -924,12 +928,12 @@ class ConfigManager(object):
             # This needs to come before binary check because Oracle
             # stores UUIDs (GUID) in binary columns.
             return consts.CONFIG_CAST_UUID_STRING
-        elif (
-            self._decimal_column_too_big_for_pandas(
-                source_column_ibis_type, target_column_ibis_type
-            )
-            or isinstance(source_column_ibis_type, dt.Binary)
-            or isinstance(target_column_ibis_type, dt.Binary)
+        elif isinstance(source_column_ibis_type, dt.Binary) or isinstance(
+            target_column_ibis_type, dt.Binary
+        ):
+            return consts.CONFIG_CAST_HEX_STRING
+        elif self._decimal_column_too_big_for_pandas(
+            source_column_ibis_type, target_column_ibis_type
         ):
             return "string"
         else:

@@ -126,15 +126,6 @@ def _cast(t, op):
     if arg_dtype.is_integer() and typ.is_timestamp():
         return t.integer_to_timestamp(sa_arg, tz=typ.timezone)
 
-    if arg_dtype.is_binary() and typ.is_string():
-        # Binary to string cast is a "to hex" conversion for DVT.
-        return sa.func.lower(sa.func.hex(sa_arg))
-
-    if typ.is_binary():
-        #  decode yields a column of memoryview which is annoying to deal with
-        # in pandas. CAST(expr AS BYTEA) is correct and returns byte strings.
-        return sa.cast(sa_arg, sa.LargeBinary())
-
     if typ.is_json() and not t.native_json_type:
         return sa_arg
 
@@ -460,6 +451,32 @@ def _day_of_week_index(t, op):
 def _day_of_week_name(t, op):
     (sa_arg,) = map(t.translate, op.arg)
     return sa.func.dayname(sa_arg)
+
+
+def strftime(translator, op):
+    """Date, Datetime, Timestamp formatting specific to DB2."""
+    # TODO(issue-1296): third_party/ibis/ibis_db2/registry.py:298 - AttributeError: 'Strftime' object has no attribute 'value'
+    pass
+
+
+def sa_format_hashbytes(translator, op):
+    compiled_arg = translator.translate(op.arg)
+    hash_func = sa.func.hash(compiled_arg, sa.sql.literal_column("2"))
+    # OBS: SYSIBM.HEX function accepts a max length of 16336 bytes (https://www.ibm.com/docs/en/db2/11.5?topic=functions-hex)
+    hex_func = sa.func.hex(hash_func)
+    return sa.func.lower(hex_func)
+
+
+def to_hex(t, op):
+    # Binary to string is a "to hex" conversion for DVT.
+    sa_arg = t.translate(op.arg)
+    return sa.func.lower(sa.func.hex(sa_arg))
+
+
+def from_hex(t, op):
+    # Binary to string is a "from hex" conversion for DVT.
+    sa_arg = t.translate(op.arg)
+    return sa.cast(sa_arg, sa.LargeBinary())
 
 
 operation_registry.update(

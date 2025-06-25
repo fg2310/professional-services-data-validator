@@ -109,14 +109,6 @@ def sa_cast_mssql(t, op):
     if (arg_dtype.is_float32() or arg_dtype.is_float64()) and typ.is_string():
         # This prevents output in scientific notation, at least for my tests it did.
         return sa.func.format(sa_arg, "G")
-    elif arg_dtype.is_binary() and typ.is_string():
-        # Binary to string cast is a "to hex" conversion for DVT.
-        return sa.func.lower(
-            sa.func.convert(sa.text("VARCHAR(MAX)"), sa_arg, sa.literal(2))
-        )
-    elif arg_dtype.is_string() and typ.is_binary():
-        # Binary from string cast is a "from hex" conversion for DVT.
-        return sa.func.convert(sa.text("VARBINARY(MAX)"), sa_arg, sa.literal(2))
     # Specialize going from DECIMAL(p,s>0) to string
     elif (
         arg_dtype.is_decimal()
@@ -154,3 +146,17 @@ def sa_string_join(t, op):
 def sa_whitespace_rstrip(t, op):
     sa_arg = t.translate(op.arg)
     return sa.func.rtrim(sa.cast(sa_arg, sa.VARCHAR(length=None)))
+
+
+def to_hex(t, op):
+    # Binary to string is a "to hex" conversion for DVT.
+    sa_arg = t.translate(op.arg)
+    return sa.func.lower(
+        sa.func.convert(sa.text("VARCHAR(MAX)"), sa_arg, sa.literal(2))
+    )
+
+
+def from_hex(t, op):
+    # Binary to string is a "from hex" conversion for DVT.
+    sa_arg = t.translate(op.arg)
+    return sa.func.convert(sa.text("VARBINARY(MAX)"), sa_arg, sa.literal(2))
