@@ -313,6 +313,8 @@ def test_column_validation_core_types():
         sum_cols="*",
         min_cols="*",
         max_cols="*",
+        avg_cols="*",
+        std_cols="*",
     )
 
 
@@ -341,6 +343,8 @@ def test_column_validation_core_types_to_bigquery():
         sum_cols=cols,
         min_cols=cols,
         max_cols=cols,
+        avg_cols=cols,
+        std_cols=cols,
     )
 
 
@@ -372,6 +376,8 @@ def test_column_validation_large_decimals_to_bigquery():
         count_cols=cols,
         min_cols=cols,
         sum_cols=cols,
+        avg_cols=cols,
+        std_cols=cols,
     )
 
 

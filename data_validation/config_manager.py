@@ -981,6 +981,7 @@ class ConfigManager(object):
                 "date",
                 "!date",
             ] and agg_type in (
+                "std",
                 "sum",
                 "avg",
                 "bit_xor",

@@ -1239,6 +1239,8 @@ def test_column_validation_core_types(mock_conn):
         sum_cols=cols,
         min_cols=cols,
         max_cols=cols,
+        avg_cols=cols,
+        std_cols=cols,
     )
 
 

@@ -691,6 +691,8 @@ def test_column_validation_pg_types():
         sum_cols=sum_cols,
         min_cols=count_cols,
         max_cols=count_cols,
+        avg_cols=count_cols,
+        std_cols=count_cols,
     )
 
 
@@ -709,6 +711,8 @@ def test_column_validation_core_types_to_bigquery():
         sum_cols=cols,
         min_cols=cols,
         max_cols=cols,
+        avg_cols=cols,
+        std_cols=cols,
     )
 
 
@@ -726,6 +730,8 @@ def test_column_validation_large_decimals_to_bigquery():
         count_cols=cols,
         min_cols=cols,
         sum_cols=cols,
+        avg_cols=cols,
+        std_cols=cols,
     )
 
 
@@ -1256,6 +1262,8 @@ def test_column_validation_decimals_no_precision():
         sum_cols="*",
         min_cols="*",
         max_cols="*",
+        avg_cols="*",
+        std_cols="*",
     )
 
 
