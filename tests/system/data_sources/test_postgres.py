@@ -691,8 +691,8 @@ def test_column_validation_pg_types():
         sum_cols=sum_cols,
         min_cols=count_cols,
         max_cols=count_cols,
-        avg_cols=count_cols,
-        std_cols=count_cols,
+        avg_cols=sum_cols,
+        std_cols=sum_cols,
     )
 
 
