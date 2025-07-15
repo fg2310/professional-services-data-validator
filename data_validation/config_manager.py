@@ -981,10 +981,10 @@ class ConfigManager(object):
                 "date",
                 "!date",
             ] and agg_type in (
-                "std",
-                "sum",
-                "avg",
-                "bit_xor",
+                consts.CONFIG_TYPE_AVG,
+                consts.CONFIG_TYPE_BIT_XOR,
+                consts.CONFIG_TYPE_STD,
+                consts.CONFIG_TYPE_SUM,
             ):
                 # For timestamps: do not convert to epoch seconds for min/max
                 return True
@@ -1077,7 +1077,10 @@ class ConfigManager(object):
                     source_column_ibis_type,
                     target_column_ibis_type,
                     margin=(2 if agg_type == consts.CONFIG_TYPE_SUM else 0),
-                ):
+                ) and agg_type not in (consts.CONFIG_TYPE_STD, consts.CONFIG_TYPE_AVG):
+                    # We exclude std and avg from this cast to string because they
+                    # change the shape of the column result and we can't know how
+                    # to format them.
                     aggregate_config[consts.CONFIG_CAST] = "string"
 
             aggregate_configs.append(aggregate_config)
