@@ -30,6 +30,7 @@ from tests.system.data_sources.common_functions import (
     id_column_query_row_validation_test,
     id_type_test_assertions,
     null_not_null_assertions,
+    raw_query_rows,
     raw_query_test,
     row_validation_many_columns_test,
     row_validation_test,
@@ -50,6 +51,10 @@ ORACLE_HOST = os.getenv("ORACLE_HOST", "localhost")
 ORACLE_PORT = os.getenv("ORACLE_PORT", "1521")
 ORACLE_PASSWORD = os.getenv("ORACLE_PASSWORD")
 ORACLE_DATABASE = os.getenv("ORACLE_DATABASE", "XEPDB1")
+ORACLE_WALLET_AUTH_PATH = os.getenv("ORACLE_WALLET_AUTH_PATH")
+ORACLE_WALLET_TLS_PATH = os.getenv("ORACLE_WALLET_TLS_PATH")
+ORACLE_WALLET_TLS_PORT = os.getenv("ORACLE_WALLET_TLS_PORT", ORACLE_PORT)
+ORACLE_WALLET_TLS_CERT_DN = os.getenv("ORACLE_WALLET_TLS_CERT_DN")
 
 CONN = {
     consts.SOURCE_TYPE: consts.SOURCE_TYPE_ORACLE,
@@ -60,6 +65,30 @@ CONN = {
     "database": ORACLE_DATABASE,
 }
 
+WALLET_AUTH_CONN = {
+    consts.SOURCE_TYPE: consts.SOURCE_TYPE_ORACLE,
+    "thick_mode": True,
+    "connect_args": {
+        "dsn": "@dvt_user_xepdb",
+        "config_dir": ORACLE_WALLET_AUTH_PATH,
+        "disable_oob": True,
+    },
+}
+
+WALLET_TLS_CONN = {
+    consts.SOURCE_TYPE: consts.SOURCE_TYPE_ORACLE,
+    "host": ORACLE_HOST,
+    "user": "SYSTEM",
+    "password": ORACLE_PASSWORD,
+    "port": int(ORACLE_WALLET_TLS_PORT),
+    "database": ORACLE_DATABASE,
+    "protocol": "TCPS",
+    "connect_args": {
+        "wallet_location": ORACLE_WALLET_TLS_PATH,
+        "ssl_server_cert_dn": ORACLE_WALLET_TLS_CERT_DN,
+        "disable_oob": True,
+    },
+}
 
 ORACLE_CONFIG = {
     # Specific Connection Config
@@ -156,6 +185,10 @@ def mock_get_connection_config(*args):
         return BQ_CONN
     elif args[1] == "pg-conn":
         return PG_CONN
+    elif args[1] == "wallet-auth-conn":
+        return WALLET_AUTH_CONN
+    elif args[1] == "wallet-tls-conn":
+        return WALLET_TLS_CONN
 
 
 # Expected result from partitioning table on 3 keys
@@ -1263,3 +1296,35 @@ def test_raw_column_metadata():
         )
     )
     assert raw_types == DVT_CORE_TYPES_RAW_DATA_TYPES
+
+
+@pytest.mark.skipif(
+    not ORACLE_WALLET_AUTH_PATH, reason="ORACLE_WALLET_AUTH_PATH is undefined"
+)
+@mock.patch(
+    "data_validation.state_manager.StateManager.get_connection_config",
+    new=mock_get_connection_config,
+)
+def test_wallet_auth():
+    """Test Oracle wallet for authentication."""
+
+    rows = raw_query_rows("SELECT USER FROM dual", conn="wallet-auth-conn")
+    assert rows
+
+
+@pytest.mark.skipif(
+    not ORACLE_WALLET_TLS_PATH, reason="ORACLE_WALLET_TLS_PATH is undefined"
+)
+@mock.patch(
+    "data_validation.state_manager.StateManager.get_connection_config",
+    new=mock_get_connection_config,
+)
+def test_wallet_tls():
+    """Test Oracle wallet for TLS encryption."""
+
+    rows = raw_query_rows(
+        "SELECT SYS_CONTEXT('USERENV', 'NETWORK_PROTOCOL') protocol FROM dual",
+        conn="wallet-tls-conn",
+    )
+    assert rows
+    assert rows[0][0].lower() == "tcps"
