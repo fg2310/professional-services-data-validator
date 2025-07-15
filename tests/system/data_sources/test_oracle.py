@@ -52,6 +52,7 @@ ORACLE_PORT = os.getenv("ORACLE_PORT", "1521")
 ORACLE_PASSWORD = os.getenv("ORACLE_PASSWORD")
 ORACLE_DATABASE = os.getenv("ORACLE_DATABASE", "XEPDB1")
 ORACLE_WALLET_AUTH_PATH = os.getenv("ORACLE_WALLET_AUTH_PATH")
+ORACLE_WALLET_AUTH_NAME = os.getenv("ORACLE_WALLET_AUTH_NAME", "xepdb1")
 ORACLE_WALLET_TLS_PATH = os.getenv("ORACLE_WALLET_TLS_PATH")
 ORACLE_WALLET_TLS_PORT = os.getenv("ORACLE_WALLET_TLS_PORT", ORACLE_PORT)
 ORACLE_WALLET_TLS_CERT_DN = os.getenv("ORACLE_WALLET_TLS_CERT_DN")
@@ -69,7 +70,7 @@ WALLET_AUTH_CONN = {
     consts.SOURCE_TYPE: consts.SOURCE_TYPE_ORACLE,
     "thick_mode": True,
     "connect_args": {
-        "dsn": "@dvt_user_xepdb",
+        "dsn": f"@{ORACLE_WALLET_AUTH_NAME}",
         "config_dir": ORACLE_WALLET_AUTH_PATH,
         "disable_oob": True,
     },
