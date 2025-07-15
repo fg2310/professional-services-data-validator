@@ -15,6 +15,7 @@
 import os
 from unittest import mock
 
+from fsspec.implementations.local import LocalFileSystem
 import pytest
 import pathlib
 
@@ -51,11 +52,15 @@ ORACLE_HOST = os.getenv("ORACLE_HOST", "localhost")
 ORACLE_PORT = os.getenv("ORACLE_PORT", "1521")
 ORACLE_PASSWORD = os.getenv("ORACLE_PASSWORD")
 ORACLE_DATABASE = os.getenv("ORACLE_DATABASE", "XEPDB1")
+# ORACLE_WALLET_AUTH_PATH is the directory that contains ewallet.p12 and cwallet.sso
 ORACLE_WALLET_AUTH_PATH = os.getenv("ORACLE_WALLET_AUTH_PATH")
-ORACLE_WALLET_AUTH_NAME = os.getenv("ORACLE_WALLET_AUTH_NAME", "xepdb1")
+ORACLE_WALLET_AUTH_TMP = f"/tmp/wallet_auth_{ORACLE_DATABASE}"
+ORACLE_WALLET_AUTH_NAME = os.getenv("ORACLE_WALLET_AUTH_NAME", ORACLE_DATABASE)
+# ORACLE_WALLET_TLS_PATH is the directory that contains ewallet.pem
 ORACLE_WALLET_TLS_PATH = os.getenv("ORACLE_WALLET_TLS_PATH")
-ORACLE_WALLET_TLS_PORT = os.getenv("ORACLE_WALLET_TLS_PORT", ORACLE_PORT)
-ORACLE_WALLET_TLS_CERT_DN = os.getenv("ORACLE_WALLET_TLS_CERT_DN")
+ORACLE_WALLET_TLS_TMP = f"/tmp/wallet_tls_{ORACLE_DATABASE}"
+ORACLE_WALLET_TLS_PORT = os.getenv("ORACLE_WALLET_TLS_PORT", "1522")
+ORACLE_WALLET_TLS_CERT_DN = os.getenv("ORACLE_WALLET_TLS_CERT_DN", "CN=oracle21")
 
 CONN = {
     consts.SOURCE_TYPE: consts.SOURCE_TYPE_ORACLE,
@@ -71,7 +76,7 @@ WALLET_AUTH_CONN = {
     "thick_mode": True,
     "connect_args": {
         "dsn": f"@{ORACLE_WALLET_AUTH_NAME}",
-        "config_dir": ORACLE_WALLET_AUTH_PATH,
+        "config_dir": ORACLE_WALLET_AUTH_TMP,
         "disable_oob": True,
     },
 }
@@ -85,7 +90,7 @@ WALLET_TLS_CONN = {
     "database": ORACLE_DATABASE,
     "protocol": "TCPS",
     "connect_args": {
-        "wallet_location": ORACLE_WALLET_TLS_PATH,
+        "wallet_location": ORACLE_WALLET_TLS_TMP,
         "ssl_server_cert_dn": ORACLE_WALLET_TLS_CERT_DN,
         "disable_oob": True,
     },
@@ -1309,6 +1314,22 @@ def test_raw_column_metadata():
 def test_wallet_auth():
     """Test Oracle wallet for authentication."""
 
+    fs = LocalFileSystem()
+    if not fs.exists(ORACLE_WALLET_AUTH_TMP):
+        fs.mkdir(ORACLE_WALLET_AUTH_TMP)
+    # Copy wallet files into place.
+    fs.copy(f"{ORACLE_WALLET_AUTH_PATH}/ewallet.p12", f"{ORACLE_WALLET_AUTH_TMP}/")
+    fs.copy(f"{ORACLE_WALLET_AUTH_PATH}/cwallet.sso", f"{ORACLE_WALLET_AUTH_TMP}/")
+    # Create tnsnames.ora file.
+    tns = f"""{ORACLE_WALLET_AUTH_NAME}=(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST={ORACLE_HOST})(PORT={ORACLE_PORT}))
+        (CONNECT_DATA=(SERVER=DEDICATED)(SERVICE_NAME={ORACLE_DATABASE})))"""
+    with fs.open(f"{ORACLE_WALLET_AUTH_TMP}/tnsnames.ora", "w") as f:
+        f.write(tns)
+    # Create sqlnet.ora file.
+    sqlnet = f"""SQLNET.WALLET_OVERRIDE=TRUE
+WALLET_LOCATION=(SOURCE=(METHOD=FILE)(METHOD_DATA=(DIRECTORY={ORACLE_WALLET_AUTH_TMP})))"""
+    with fs.open(f"{ORACLE_WALLET_AUTH_TMP}/sqlnet.ora", "w") as f:
+        f.write(sqlnet)
     rows = raw_query_rows("SELECT USER FROM dual", conn="wallet-auth-conn")
     assert rows
 
@@ -1323,6 +1344,11 @@ def test_wallet_auth():
 def test_wallet_tls():
     """Test Oracle wallet for TLS encryption."""
 
+    fs = LocalFileSystem()
+    if not fs.exists(ORACLE_WALLET_TLS_TMP):
+        fs.mkdir(ORACLE_WALLET_TLS_TMP)
+    # Copy wallet file into place.
+    fs.copy(f"{ORACLE_WALLET_TLS_PATH}/ewallet.pem", f"{ORACLE_WALLET_TLS_TMP}/")
     rows = raw_query_rows(
         "SELECT SYS_CONTEXT('USERENV', 'NETWORK_PROTOCOL') protocol FROM dual",
         conn="wallet-tls-conn",
