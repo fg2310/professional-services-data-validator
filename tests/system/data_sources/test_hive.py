@@ -234,7 +234,12 @@ def test_column_validation_core_types_to_bigquery():
     # TODO Change --sum and --max options to include col_char_2 when issue-1514 is complete.
     cols = "col_int8,col_int16,col_int32,col_int64,col_dec_20,col_dec_38,col_dec_10_2,col_float64,col_varchar_30,col_string,col_date,col_datetime,col_tstz"
     column_validation_test(
-        tc="bq-conn", filters="id>0 AND col_int8>0", sum_cols=cols, max_cols=cols
+        tc="bq-conn",
+        filters="id>0 AND col_int8>0",
+        sum_cols=cols,
+        max_cols=cols,
+        avg_cols=cols,
+        std_cols=cols,
     )
 
 

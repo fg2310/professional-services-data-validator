@@ -278,6 +278,8 @@ def test_column_validation_core_types_to_bigquery():
         sum_cols="*",
         min_cols="*",
         max_cols="*",
+        avg_cols="*",
+        std_cols="*",
     )
 
 
