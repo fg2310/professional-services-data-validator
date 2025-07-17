@@ -158,6 +158,10 @@ def _cast(t, op):
         # If we are casting to Date then simulate what all other engines
         # understand to be a Date, which is without the time element.
         return sa.func.cast(sa.func.TRUNC(sa_arg), sa.types.Date)
+    elif arg_dtype.is_decimal() and typ.is_float64():
+        return sa.func.cast(sa_arg, sa.dialects.oracle.BINARY_DOUBLE)
+    elif arg_dtype.is_decimal() and typ.is_float32():
+        return sa.func.cast(sa_arg, sa.dialects.oracle.BINARY_FLOAT)
 
     # Follow the original Ibis code path.
     return sa_fixed_cast(t, op)

@@ -1077,11 +1077,16 @@ class ConfigManager(object):
                     source_column_ibis_type,
                     target_column_ibis_type,
                     margin=(2 if agg_type == consts.CONFIG_TYPE_SUM else 0),
-                ) and agg_type not in (consts.CONFIG_TYPE_STD, consts.CONFIG_TYPE_AVG):
-                    # We exclude std and avg from this cast to string because they
-                    # change the shape of the column result and we can't know how
-                    # to format them.
-                    aggregate_config[consts.CONFIG_CAST] = "string"
+                ):
+                    if agg_type in (consts.CONFIG_TYPE_STD, consts.CONFIG_TYPE_AVG):
+                        # std and avg change the shape of the column result and we
+                        # can't know how to format them reliably, float64 is our best bet.
+                        # This may be lossy and generate false success validations.
+                        aggregate_config[consts.CONFIG_CAST] = "float64"
+                    else:
+                        # Other agg types should retain the shape of the results and can be
+                        # reliably formated as strings when the Pandas native types will overflow.
+                        aggregate_config[consts.CONFIG_CAST] = "string"
 
             aggregate_configs.append(aggregate_config)
 
