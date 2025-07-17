@@ -397,13 +397,20 @@ def test_column_validation_large_decimals_to_bigquery():
     # SQL Server stdev returns Float32. This is incomatible with stddev_samp
     # from most other engines when the inputs have precision > float64.
     # Therefore we have excluded std_cols below.
+
+    # Excluding col_dec_38 from avg_cols due to:
+    # 1> SELECT avg(t0.col_dec_38) FROM pso_data_validator.dvt_large_decimals AS t0;
+    # 2> go
+    # Msg 8115, Level 16, State 2, Server 969116d95f4d397, Line 1
+    # Arithmetic overflow error converting expression to data type numeric.
+    avg_cols = "col_dec_18,col_dec_38_9,col_dec_38_30"
     column_validation_test(
         tables="pso_data_validator.dvt_large_decimals",
         tc="bq-conn",
         count_cols=cols,
         min_cols=cols,
         sum_cols=cols,
-        avg_cols=cols,
+        avg_cols=avg_cols,
     )
 
 
