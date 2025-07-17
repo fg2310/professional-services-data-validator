@@ -336,6 +336,23 @@ def test_column_validation_core_types_to_bigquery():
             )
         ]
     )
+    # Teradata stddev_samp returns REAL. This is incomatible with stddev_samp
+    # from other engines when the inputs have precision > float64.
+    std_cols = ",".join(
+        [
+            _
+            for _ in DVT_CORE_TYPES_COLUMNS
+            if _
+            in (
+                "col_int8",
+                "col_int16",
+                "col_int32",
+                "col_int64",
+                "col_dec_10_2",
+                "col_float32",
+            )
+        ]
+    )
     column_validation_test(
         tc="bq-conn",
         tables="udf.dvt_core_types=pso_data_validator.dvt_core_types",
@@ -344,7 +361,7 @@ def test_column_validation_core_types_to_bigquery():
         min_cols=cols,
         max_cols=cols,
         avg_cols=cols,
-        std_cols=cols,
+        std_cols=std_cols,
     )
 
 
@@ -370,6 +387,9 @@ def test_column_validation_large_decimals_to_bigquery():
     """Teradata to BigQuery dvt_large_decimals column validation."""
     # TODO Add col_dec_38 to cols when issue-1360 has been resolved.
     cols = "col_dec_18,col_dec_38_9,col_dec_38_30"
+    # Teradata stddev_samp returns REAL. This is incomatible with stddev_samp
+    # from other engines when the inputs have precision > float64. Therefore
+    # we have excluded std_cols below.
     column_validation_test(
         tables="udf.dvt_large_decimals=pso_data_validator.dvt_large_decimals",
         tc="bq-conn",
@@ -377,7 +397,6 @@ def test_column_validation_large_decimals_to_bigquery():
         min_cols=cols,
         sum_cols=cols,
         avg_cols=cols,
-        std_cols=cols,
     )
 
 

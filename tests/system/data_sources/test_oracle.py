@@ -336,7 +336,9 @@ def test_column_validation_core_types_to_bigquery():
         [_ for _ in DVT_CORE_TYPES_COLUMNS if _ not in ("id", "col_float32")]
     )
     # TODO Remove std_cols when issue-1540 is complete.
-    std_cols = ",".join([_ for _ in cols if _ not in ("col_float64")])
+    std_cols = ",".join(
+        [_ for _ in DVT_CORE_TYPES_COLUMNS if _ not in ("id", "col_float64")]
+    )
     column_validation_test(
         tc="bq-conn",
         tables="pso_data_validator.dvt_core_types",

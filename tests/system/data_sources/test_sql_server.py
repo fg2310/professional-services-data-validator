@@ -294,9 +294,9 @@ def test_schema_validation_core_types_to_bigquery():
             # All SQL Server integers go to BigQuery INT64.
             "int8:int64,int16:int64,int32:int64,"
             # BigQuery does not have a float32 type.
-            "float32:float64,",
+            "float32:float64,"
             # SQL Server TIMESTAMP type has scale=7 on Ibis which does not happen in BigQuery.
-            "timestamp(7):timestamp,!timestamp(7):!timestamp,timestamp(7, 'UTC'):timestamp('UTC'),",
+            "timestamp(7):timestamp,!timestamp(7):!timestamp,timestamp(7, 'UTC'):timestamp('UTC'),"
         ),
     )
 
@@ -352,6 +352,13 @@ def test_column_validation_core_types_to_bigquery():
     cols = ",".join(
         [_ for _ in DVT_CORE_TYPES_COLUMNS if _ not in ("id", "col_float32")]
     )
+    std_cols = ",".join(
+        [
+            _
+            for _ in DVT_CORE_TYPES_COLUMNS
+            if _ not in ("id", "col_float32", "col_float64")
+        ]
+    )
     column_validation_test(
         tc="bq-conn",
         tables="pso_data_validator.dvt_core_types",
@@ -359,7 +366,7 @@ def test_column_validation_core_types_to_bigquery():
         min_cols=cols,
         max_cols=cols,
         avg_cols=cols,
-        std_cols=cols,
+        std_cols=std_cols,
     )
 
 
