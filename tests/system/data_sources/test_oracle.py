@@ -335,6 +335,8 @@ def test_column_validation_core_types_to_bigquery():
     cols = ",".join(
         [_ for _ in DVT_CORE_TYPES_COLUMNS if _ not in ("id", "col_float32")]
     )
+    # TODO Remove std_cols when issue-1540 is complete.
+    std_cols = ",".join([_ for _ in cols if _ not in ("col_float64")])
     column_validation_test(
         tc="bq-conn",
         tables="pso_data_validator.dvt_core_types",
@@ -342,7 +344,7 @@ def test_column_validation_core_types_to_bigquery():
         min_cols=cols,
         max_cols=cols,
         avg_cols=cols,
-        std_cols=cols,
+        std_cols=std_cols,
     )
 
 
@@ -387,14 +389,18 @@ def test_column_validation_oracle_to_postgres():
 def test_column_validation_large_decimals_to_bigquery():
     """Oracle to BigQuery dvt_large_decimals column validation."""
     cols = "col_dec_18,col_dec_38,col_dec_38_9,col_dec_38_30"
+    # TODO Add col_dec_38 to std_cols below when issue-1540 is complete.
+    std_cols = "col_dec_18,col_dec_38_9,col_dec_38_30"
+    # TODO Add col_dec_38 to std_cols below when issue-1551 is complete.
+    avg_cols = "col_dec_18,col_dec_38_9,col_dec_38_30"
     column_validation_test(
         tables="pso_data_validator.dvt_large_decimals",
         tc="bq-conn",
         count_cols=cols,
         min_cols=cols,
         sum_cols=cols,
-        avg_cols=cols,
-        std_cols=cols,
+        avg_cols=avg_cols,
+        std_cols=std_cols,
     )
 
 
