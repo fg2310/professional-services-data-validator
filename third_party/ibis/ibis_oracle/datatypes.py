@@ -83,6 +83,7 @@ _type_mapping = {
     oracledb.DB_TYPE_BINARY_FLOAT: dt.Float32,
     oracledb.DB_TYPE_BINARY_DOUBLE: dt.Float64,
     oracledb.DB_TYPE_INTERVAL_DS: dt.Interval,
+    oracledb.DB_TYPE_INTERVAL_YM: dt.Interval,
 }
 
 # SQL Alchemy doesn't support LONG RAW which drops us into Ibis 5.1.0 method:
@@ -95,9 +96,9 @@ if "LONG RAW" not in OracleDialect_oracledb.ischema_names:
     OracleDialect_oracledb.ischema_names["LONG RAW"] = oracle.RAW
 # Same as above but for LOCAL TIME ZONE.
 if "TIMESTAMP WITH LOCAL TIME ZONE" not in OracleDialect_oracledb.ischema_names:
-    OracleDialect_oracledb.ischema_names[
-        "TIMESTAMP WITH LOCAL TIME ZONE"
-    ] = oracle.TIMESTAMP(timezone=True)
+    OracleDialect_oracledb.ischema_names["TIMESTAMP WITH LOCAL TIME ZONE"] = (
+        oracle.TIMESTAMP(timezone=True)
+    )
 
 
 @dt.dtype.register(OracleDialect_oracledb, sa.dialects.oracle.CLOB)
@@ -179,8 +180,8 @@ def sa_oracle_TIMESTAMP(_, satype, nullable=True):
         return dt.Timestamp(nullable=nullable)
 
 
-@dt.dtype.register(OracleDialect_oracledb, (sa.dialects.oracle.INTERVAL))
-def sa_oracle_INTERVAL_DS(_, satype, nullable=True):
+@dt.dtype.register(OracleDialect_oracledb, (sa.dialects.oracle.INTERVAL, sat.Interval))
+def sa_oracle_INTERVAL(_, satype, nullable=True):
     return dt.Interval(nullable=nullable)
 
 
