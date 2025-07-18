@@ -119,7 +119,7 @@ def force_cast(self, target_type: str) -> Value:
     return op.to_expr()
 
 
-def _dvt_handle_failed_column_type_inference(
+def dvt_handle_failed_column_type_inference(
     self, table: sa.Table, nulltype_cols: Iterable[str]
 ) -> sa.Table:
     """Handle cases where SQLAlchemy cannot infer the column types of `table`.
@@ -143,7 +143,7 @@ def _dvt_handle_failed_column_type_inference(
             # types
             table.append_column(
                 sa.Column(
-                    colname,
+                    colname.lower(),
                     to_sqla_type(dialect, type),
                     nullable=type.nullable,
                     quote=self.compiler.translator_class._quote_column_names,
