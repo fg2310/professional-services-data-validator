@@ -783,3 +783,14 @@ CREATE TABLE udf.dvt_reserved_word_columns (
 );
 COMMENT ON TABLE udf.dvt_reserved_word_columns IS 'Integration test table used to test potentially difficult column names.';
 INSERT INTO udf.dvt_reserved_word_columns (id) VALUES (1);
+
+DROP TABLE udf.dvt_intervals;
+CREATE TABLE udf.dvt_intervals
+( id              INTEGER NOT NULL PRIMARY KEY
+, col_interval_ds INTERVAL DAY TO SECOND
+, col_interval_ym INTERVAL YEAR TO MONTH);
+COMMENT ON TABLE udf.dvt_intervals IS 'Integration test table used to test INTERVAL data types.';
+INSERT INTO udf.dvt_intervals VALUES
+(1,INTERVAL '1 02:03:44' DAY TO SECOND,INTERVAL '1-02' YEAR TO MONTH);
+INSERT INTO udf.dvt_intervals VALUES
+(2,INTERVAL '2 02:03:44' DAY TO SECOND,INTERVAL '2-02' YEAR TO MONTH);
