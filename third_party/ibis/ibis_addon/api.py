@@ -131,11 +131,11 @@ def dvt_handle_failed_column_type_inference(
     self.inspector.reflect_table(table, table.columns)
     dialect = self.con.dialect
     quoted_name = dialect.identifier_preparer.quote(table.name)
-    # Extra DVT code vvv
+    # Start of custom DVT code
     if table.schema:
         quoted_schema = dialect.identifier_preparer.quote(table.schema)
         quoted_name = quoted_schema + "." + quoted_name
-    # Extra DVT code ^^^
+    # End of custom DVT code
 
     for colname, type in self._metadata(quoted_name):
         if colname.lower() in nulltype_cols:
