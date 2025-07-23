@@ -255,7 +255,7 @@ def test_column_validation_core_types_to_bigquery():
     # Excluded col_dec_20,col_dec_38 from std_cols because they overflow STDDEV_SAMP fuction:
     # SELECT stddev("COL_DEC_20") FROM pso_data_validator.public."DVT_CORE_TYPES";
     #   Value overflow in a SUM aggregate
-    # TODO Remove col_float64 from std_cols exclusions when issue-1540 is complete.
+    # Excluded col_float64 from std_cols due to STDDEV_SAMP inconsistent results. See issue-1540.
     std_cols = ",".join(
         [
             _
