@@ -972,5 +972,7 @@ CREATE TABLE pso_data_validator.dvt_intervals
 , col_interval_ym interval);
 COMMENT ON TABLE pso_data_validator.dvt_intervals IS 'Integration test table used to test INTERVAL data types.';
 INSERT INTO pso_data_validator.dvt_intervals VALUES
+(0,INTERVAL '0 day 2 hours 3 minutes 44 seconds',INTERVAL '0 year 2 months'),
 (1,INTERVAL '1 day 2 hours 3 minutes 44 seconds',INTERVAL '1 year 2 months'),
-(2,INTERVAL '2 day 2 hours 3 minutes 44 seconds',INTERVAL '2 year 2 months');
+(2,INTERVAL '2 days 2 hours 3 minutes 44.123 seconds',INTERVAL '2 years 2 months'),
+(3,INTERVAL '30 days 22 hours 33 minutes 44 seconds',INTERVAL '30 years 11 months');
