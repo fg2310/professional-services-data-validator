@@ -1,2 +1,0 @@
-# Install Data Validation Tool
-google-pso-data-validator
